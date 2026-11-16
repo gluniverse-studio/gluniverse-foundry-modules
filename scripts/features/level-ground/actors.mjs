@@ -15,6 +15,8 @@
 
 import { SUITE_ID } from "../../core/const.mjs";
 import { MODIFIER_LABEL as FLATTEN_LABEL, MODIFIER_SLUG as FLATTEN_SLUG } from "../pf2e-flatten/constants.js";
+import { PREP, flagPath as babFlagPath, poolValues } from "../breath-and-blood/actor.mjs";
+import { FLAG as BAB_FLAG } from "../breath-and-blood/constants.mjs";
 import { FLAGS, flagPath } from "./constants.mjs";
 import {
   hasBattleForm,
@@ -178,6 +180,9 @@ export async function setRole(actor, role) {
   // The prepared total before Breath and Blood halves an NPC into two pools.
   const adjustHP = (maxHPOf(actor) || sourceMax) - sourceMax;
   const wasFull = Number(hp.value) >= Number(hp.max);
+  // A two-pool NPC (Breath and Blood) keeps its Stamina in a flag: full Stamina stays full.
+  const pools = PREP.get(actor);
+  const spFull = !!pools?.twoPool && poolValues(actor).sp >= pools.maxSP;
 
   const newSource = next === "none" ? printedMax : roleSourceMax({ role: next, printedMax, adjustHP });
   const update = { "system.attributes.hp.max": newSource };
@@ -188,7 +193,10 @@ export async function setRole(actor, role) {
   const value = wasFull ? preparedMax : Math.min(Number(hp.value) || 0, preparedMax);
   // The value is already capped to the total above; pf2e's own clamp would cap it to the
   // prepared maximum, which Breath and Blood has halved on a two-pool NPC.
-  await actor.update({ "system.attributes.hp.value": value }, { allowHPOverage: true });
+  const valueUpdate = { "system.attributes.hp.value": value };
+  const newPools = PREP.get(actor);
+  if (spFull && newPools?.twoPool) valueUpdate[babFlagPath(BAB_FLAG.sp)] = newPools.maxSP;
+  await actor.update(valueUpdate, { allowHPOverage: true });
 
   // Markers: drop the old ones, add the new role's.
   const old = actor.items.filter((i) => flagOf(i, FLAGS.roleMarker));
