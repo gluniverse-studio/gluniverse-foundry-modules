@@ -412,6 +412,17 @@ export function placePeek(root, anchor, peek, zoom = 1) {
   peek.style.setProperty("--gph-peek-y", `${Math.round((rr.bottom - top) / zoom + 8)}px`);
 }
 
+/** A skill's fly stands on its key, edge to edge: the pointer walks straight
+ *  up into it, over no other key. */
+export function placeFly(root, anchor, fly, zoom = 1) {
+  if (!root || !anchor || !fly) return;
+  const rr = root.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+  const w = fly.offsetWidth || 264;
+  const x = Math.max(0, Math.min(rr.width / zoom - w, ((ar.left + ar.right) / 2 - rr.left) / zoom - w / 2));
+  fly.style.setProperty("--gph-peek-x", `${Math.round(x)}px`);
+  fly.style.setProperty("--gph-peek-y", `${Math.round((rr.bottom - ar.top) / zoom)}px`);
+}
+
 /* ── the moments (moments.mjs decides; these play) ────────────────
    Each restarts a class whose CSS animation is the moment and takes it off
    once that animation has had its length, so the next one plays from the

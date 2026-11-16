@@ -237,6 +237,8 @@
   "GLRAIL.skill.step2": "{name} {mod}, third attack",
   "GLRAIL.skill.atMap": "{name}, at this turn's multiple attack penalty",
   "GLRAIL.skill.checkHint": "Enter rolls the check",
+  "GLRAIL.skill.flyLabel": "{name} actions",
+  "GLRAIL.skill.flyNone": "No actions of its own. Press the skill to roll the check.",
   "GLRAIL.stat.label": "{name}: defences and passive abilities",
   "GLRAIL.stat.none": "No immunities, weaknesses, resistances or passive abilities",
   "GLRAIL.stat.immune": "Immune",

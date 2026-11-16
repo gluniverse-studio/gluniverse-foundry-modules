@@ -35,6 +35,9 @@ export const STD_EXPLORE = "std:";
 export const TIMING = Object.freeze({
   /** A pointer has to rest this long on a card, row or strike before it peeks. */
   peekOpen: 140,
+  /** A skill's key is pressed far more often than it is read: its actions
+   *  rise only for a pointer that stays. */
+  flyOpen: 300,
   /** …and may leave for this long (crossing the gap to the peek) before it closes. */
   peekClose: 250,
   /** A change of whose rail it is fades the old one out for this long first. */

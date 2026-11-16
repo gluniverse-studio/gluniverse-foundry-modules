@@ -408,7 +408,8 @@ const skillName = (c, t, q = "") => {
   const subject = String(c.name).replace(/\s+Lore$/i, "") || c.name;
   return `<span class="gph-skn is-lore"><span>${marked(subject, q)}</span><small>${esc(t("GLRAIL.skill.lore"))}</small></span>`;
 };
-const CHECK_KEY = (c, t) => `<button type="button" class="gph-ck" data-check="${esc(c.check)}" data-rank="${c.rank ?? 0}" title="${esc(`${t("GLRAIL.check.roll", { name: c.name })} · ${t(`GLRAIL.prof.${c.rank ?? 0}`)}`)}" aria-label="${esc(`${c.name} ${sign(c.mod)}`)}">
+/* No tooltip: the fly that rises over a rested key says what one would. */
+const CHECK_KEY = (c, t) => `<button type="button" class="gph-ck" data-check="${esc(c.check)}" data-rank="${c.rank ?? 0}" aria-label="${esc(`${c.name} ${sign(c.mod)}`)}">
       ${skillName(c, t)}<b>${sign(c.mod)}</b></button>`;
 
 export const SKILLTAB = (s, t) => `
@@ -502,7 +503,7 @@ const marked = (name, q) => {
   }).join("");
 };
 
-const CHIP = (a, t, sel, k, { query = "" } = {}) => {
+const CHIP = (a, t, sel, k, { query = "", option = true } = {}) => {
   const chance = a.vs?.chance ?? null;
   const known = a.vs && a.vs.dc != null;
   /* rolled with a statistic that is not this row's (Unarmed for Escape) */
@@ -513,11 +514,24 @@ const CHIP = (a, t, sel, k, { query = "" } = {}) => {
   const face = `${actionIcon(a.slug)}<b>${marked(a.name, query)}</b>${a.cost != null ? `<span class="gph-cost">${costGlyph(a.cost)}</span>` : ""}${a.secret ? ICON.secret : ""}`;
   const tail = `${other ? `<i class="gph-cskill">${esc(a.skill.name.slice(0, 3))} ${sign(a.skill.mod)}</i>` : ""}${a.pinned ? `<span class="gph-pinmk" title="${esc(t("GLRAIL.skill.pinned"))}">${ICON.pin}</span>` : ""}<em class="gph-codds"${oddsTone(chance) ? ` data-tone="${oddsTone(chance)}"` : ""}>${a.vs ? (chance != null ? pctOf(chance) : known ? esc(t("GLRAIL.skill.dcShort", { dc: a.vs.dc })) : esc(t("GLRAIL.skill.unknown"))) : ""}</em>`;
   const cls = `gph-fa${sel ? " is-sel" : ""}${a.pinned ? " is-pinned" : ""}`;
-  if (a.variants) return `<span class="${cls} is-steps" role="option" aria-selected="${!!sel}" data-attack data-k="${k}" style="--k:${k}">
+  const opt = option ? ` role="option" aria-selected="${!!sel}" data-k="${k}" style="--k:${k}"` : "";
+  if (a.variants) return `<span class="${cls} is-steps"${opt} data-attack>
     <button type="button" class="gph-fab" ${ACT(a)} data-attack${COST(a)} title="${title}" aria-label="${said}">${face}</button>${STEPS(a, t)}${tail}</span>`;
-  return `<button type="button" class="${cls}" role="option" aria-selected="${!!sel}" ${ACT(a)}${COST(a)} data-k="${k}" style="--k:${k}" title="${title}" aria-label="${said}">
+  return `<button type="button" class="${cls}"${opt} ${ACT(a)}${COST(a)} title="${title}" aria-label="${said}">
     ${face}${tail}</button>`;
 };
+
+/* The fly: a skill's actions, risen over its key on the rail while the
+   pointer rests there. It is that skill's row of the sheet (the same keys,
+   the same presses), so nothing here is a second way to roll anything. The
+   key under it stays the plain check. A row's tooltip opens to the left
+   (Foundry reads the direction off the nearest ancestor): above, it would
+   lie over the rows the pointer goes to next. */
+export const SKILLFLY = (r, t) => `
+<div class="gph-peek gph-fly" data-fly="${esc(r.check)}" data-tooltip-direction="LEFT" role="group" aria-label="${esc(t("GLRAIL.skill.flyLabel", { name: r.name }))}">
+  <header class="gph-flyh">${skillName(r, t)}<span>${esc(t(`GLRAIL.prof.${r.rank ?? 0}`))}</span><em>${sign(r.mod)}</em></header>
+  ${r.actions.length ? `<div class="gph-flyacts">${r.actions.map((a) => CHIP(a, t, false, 0, { option: false })).join("")}</div>` : `<p class="gph-flynone">${esc(t("GLRAIL.skill.flyNone"))}</p>`}
+</div>`;
 
 /* What is selected, said whole in the foot: what it rolls, against what,
    and whether the party knows that number — so the keyboard has what the

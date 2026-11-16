@@ -83,7 +83,9 @@ const WORDS = () => [0, 1, 2, 3].map((i) => t(`GLRAIL.degree.${i}`));
 /* The cards that peek while the pointer rests on them, and the peeks that
    close when it leaves. */
 const HOVER_CARD = "[data-spell], .gph-card[data-item]";
-const HOVER_PEEKS = new Set(["spell", "item"]);
+const HOVER_PEEKS = new Set(["spell", "item", "skill"]);
+/* A skill's key on the rail: rested on, its actions rise over it. */
+const SKILL_KEY = ".gph-ck[data-check]";
 /* A card or a seat that stands for a token on the canvas. */
 const TOKEN_CARD = "[data-foe], [data-seat]";
 
@@ -474,7 +476,9 @@ export class RailHost {
     if (arrive) { root.classList.add("is-arriving"); setTimeout(() => root.classList.remove("is-arriving"), D.token(root, "--gl-d-cinematic", 900)); }
     if (this.open.drawer && !this.fs.open) D.placeDrawer(root);
     if (this.fs.open) this.settleFinder();
-    if (this.peek) this.showPeek(this.peek.model, root.querySelector(this.peek.anchor), this.peek);
+    /* a peek redrawn under a resting pointer stays where it stood: risen
+       again it slides a row down, onto the press beside the one aimed at */
+    if (this.peek) this.showPeek(this.peek.kind === "skill" ? this.flyModel(this.peek.id) : this.peek.model, root.querySelector(this.peek.anchor), this.peek, { again: true });
     this.prev = this.model;
     this.dock();
     this.publishEdge();
@@ -575,17 +579,19 @@ export class RailHost {
 
   /* ── peeks ──────────────────────────────────────────────────── */
 
-  showPeek(model, anchor, meta) {
+  showPeek(model, anchor, meta, { again = false } = {}) {
     const root = this.root;
     if (!root || !anchor || !model) return;
     root.querySelector(".gph-peek")?.remove();
     root.querySelectorAll(".is-peek").forEach((x) => x.classList.remove("is-peek"));
-    root.insertAdjacentHTML("beforeend", V.PEEK(model, t));
+    const fly = meta.kind === "skill";
+    root.insertAdjacentHTML("beforeend", fly ? V.SKILLFLY(model, t) : V.PEEK(model, t));
     const peek = root.querySelector(".gph-peek");
+    if (again) peek.classList.add("is-again");
     (anchor.closest(".gph-held") ?? anchor.closest(".gph-row") ?? anchor).classList.add("is-peek");
     /* a peek says everything its press's tooltip would */
     if (anchor.contains(game.tooltip?.element ?? null)) game.tooltip.deactivate();
-    D.placePeek(root, anchor, peek);
+    if (fly) D.placeFly(root, anchor, peek); else D.placePeek(root, anchor, peek);
     this.peek = { ...meta, model };
   }
 
@@ -601,6 +607,21 @@ export class RailHost {
   enrich(html, item) {
     const TE = foundry.applications?.ux?.TextEditor?.implementation ?? globalThis.TextEditor;
     return safe(() => TE.enrichHTML(html ?? "", { rollData: item?.getRollData?.(), relativeTo: item, secrets: item?.isOwner })).then((s) => s ?? "");
+  }
+
+  /** The skill's row of the sheet, as it stands now (the MAP step moves it). */
+  flyModel(check) {
+    const m = this.model;
+    return m?.sk ? K.flyOf(K.finderModel({ ...m.sk, query: "", sel: 0, mode: "exploration", map: m.turnbar?.map ?? 0, t }), check) : null;
+  }
+
+  peekSkill(key) {
+    if (!key.isConnected || this.fs.open || this.open.drawer) return;
+    /* a question the player pressed for (which variant?) is not swapped for
+       the key it left the pointer resting on */
+    if (this.peek && !HOVER_PEEKS.has(this.peek.kind)) return;
+    const check = key.dataset.check;
+    this.showPeek(this.flyModel(check), key, { kind: "skill", id: check, anchor: `.gph-ck[data-check="${CSS.escape(check)}"]` });
   }
 
   async peekStrike(button) {
@@ -896,9 +917,13 @@ export class RailHost {
        Aid, Create a Diversion, Perform): the press asks which, over itself. */
     const variants = action?.variants ? [...action.variants.values()] : [];
     if (!kind && variants.length > 1) {
+      /* pressed in a skill's fly: the question stands where the fly stood */
+      const fly = button?.closest?.(".gph-fly");
+      if (fly) button = this.root?.querySelector(`.gph-ck[data-check="${CSS.escape(fly.dataset.fly)}"]`) ?? button;
+      const anchor = fly ? `.gph-ck[data-check="${CSS.escape(fly.dataset.fly)}"]` : `[data-skill-action="${CSS.escape(a.id)}"]${stat ? `[data-stat="${CSS.escape(stat)}"]` : ""}`;
       return this.showPeek({ name: a.name, from: `${a.skill.name} ${(a.mapMod ?? a.skill.mod) < 0 ? "−" : "+"}${Math.abs(a.mapMod ?? a.skill.mod)}`,
         actions: variants.map((x) => ({ id: `variant:${x.slug}`, label: game.i18n.localize(x.name ?? x.slug), ...(a.cost != null ? { cost: a.cost } : {}) })) },
-        button, { kind: "variant", id: a.id, stat, anchor: `[data-skill-action="${CSS.escape(a.id)}"]${stat ? `[data-stat="${CSS.escape(stat)}"]` : ""}` });
+        button, { kind: "variant", id: a.id, stat, anchor });
     }
     const ctx = this.spendCtx();
     if (action) await action.use({ actors: [actor], statistic: a.skill.slug, event, ...(kind ? { variant: kind } : {}), ...(a.attack ? { multipleAttackPenalty: mapArg(map, a.mapStep) } : {}) });
@@ -1095,6 +1120,15 @@ export class RailHost {
     const tc = e.target.closest(TOKEN_CARD);
     if (tc) this.hoverToken(tc, e);
     const c = e.target.closest(HOVER_CARD);
+    /* a finger's press is the check; only a pointer that can rest opens the fly */
+    const k = c || e.pointerType === "touch" ? null : e.target.closest(SKILL_KEY);
+    if (k && !this.fs.open) {
+      if (this.peek?.kind === "skill" && this.peek.id === k.dataset.check) return void clearTimeout(this.peekT);
+      clearTimeout(this.peekT);
+      /* with one fly up, the next key's follows at once: the pointer is reading */
+      this.peekT = setTimeout(() => this.peekSkill(k), this.peek?.kind === "skill" ? TIMING.peekOpen : TIMING.flyOpen);
+      return;
+    }
     if (!c || this.fs.open) return;
     clearTimeout(this.peekT);
     this.peekT = setTimeout(() => (c.dataset.spell ? this.peekSpell(c) : this.peekItem(c)), TIMING.peekOpen);
@@ -1102,9 +1136,9 @@ export class RailHost {
 
   onOut(e) {
     if (e.target.closest(TOKEN_CARD) && !e.relatedTarget?.closest?.(TOKEN_CARD)) this.hoverToken(null, e);
-    if (!e.target.closest(`${HOVER_CARD}, .gph-peek`)) return;
+    if (!e.target.closest(`${HOVER_CARD}, ${SKILL_KEY}, .gph-peek`)) return;
     clearTimeout(this.peekT);
-    this.peekT = setTimeout(() => { if (HOVER_PEEKS.has(this.peek?.kind) && !this.el?.querySelector(`.gph-peek:hover, :is(${HOVER_CARD}):hover`)) this.closePeek(); }, TIMING.peekClose);
+    this.peekT = setTimeout(() => { if (HOVER_PEEKS.has(this.peek?.kind) && !this.el?.querySelector(`.gph-peek:hover, :is(${HOVER_CARD}, ${SKILL_KEY}):hover`)) this.closePeek(); }, TIMING.peekClose);
   }
 
   /** The wheel over the spell dial or the hand turns the rank, one step a

@@ -24,6 +24,7 @@
  *   &w=1920&h=1080   the stand-in screen (default: the window)
  *   &sidebar=0       collapse the sidebar (default open, 300px)
  *   &peek=strike|spell|action|item   open that peek (item wants &tab=items)
+ *   &fly=skill:athletics             a skill's actions over its key (wants &tab=skills)
  *   &hp=-12      open the Hit Point field with that typed in it
  *   &tab=spells|actions|skills|items   the deck's tab
  *   &finder=1&q=tri&group=maneuvers   the skill finder, open
@@ -163,7 +164,7 @@ try {
   if (q.get('tab') && model.deck) model.deck = { ...model.deck, tab: q.get('tab') };
   if (q.get('map') && model.turnbar) model.turnbar = { ...model.turnbar, map: +q.get('map') };
   if (q.get('next') === '1' && model.turnbar?.mode === 'encounter') model.turnbar = { ...model.turnbar, mine: false, current: model.turnbar.current ?? 'Kyra', map: 0, next: true };
-  let open = { drawer: q.get('drawer'), peek: q.get('peek') };
+  let open = { drawer: q.get('drawer'), peek: q.get('peek'), fly: q.get('fly') };
   /* the finder's own state: open, what is typed, the group, the selection */
   let fs = { open: q.get('finder') === '1', query: q.get('q') ?? '', sel: +(q.get('sel') ?? 0), settled: false };
   let prev = null;
@@ -197,6 +198,7 @@ try {
     if (arrive) { root.classList.add('is-arriving'); setTimeout(() => root.classList.remove('is-arriving'), 900); }
     if (open.drawer && !fs.open) D.placeDrawer(root);
     if (open.peek) showPeek(open.peek);
+    if (open.fly) showFly(open.fly);
     if (fs.open) settleFinder(root);
     prev = model;
     return root;
@@ -337,7 +339,20 @@ try {
     D.placePeek(root, anchor, peek);
     open.peek = kind;
   }
+  /* a skill's fly: its row of the sheet, on its key (the host's peekSkill) */
+  function showFly(check) {
+    const root = host.firstElementChild, anchor = root.querySelector('.gph-ck[data-check="' + check + '"]');
+    const row = model.sk ? K.flyOf(K.finderModel({ ...model.sk, query: '', sel: 0, mode: 'exploration', map: mapNow(), t }), check) : null;
+    if (!anchor || !row || fs.open || open.drawer) return;
+    root.querySelector('.gph-peek')?.remove();
+    root.querySelectorAll('.is-peek').forEach((x) => x.classList.remove('is-peek'));
+    root.insertAdjacentHTML('beforeend', V.SKILLFLY(row, t));
+    anchor.classList.add('is-peek');
+    D.placeFly(root, anchor, root.querySelector('.gph-peek'));
+    open.peek = null; open.fly = check;
+  }
   function closePeek() {
+    open.fly = null;
     const root = host.firstElementChild, peek = root?.querySelector('.gph-peek');
     if (!peek) return;
     root.querySelectorAll('.is-peek').forEach((x) => x.classList.remove('is-peek'));
@@ -409,12 +424,14 @@ try {
   /* the hover peek: rest 140ms to open, leave for 250ms to close */
   let peekT = 0;
   host.addEventListener('pointerover', (e) => {
+    const k = e.target.closest('.gph-ck[data-check]');
+    if (k && !fs.open) { if (open.fly === k.dataset.check) { clearTimeout(peekT); return; } clearTimeout(peekT); peekT = setTimeout(() => showFly(k.dataset.check), open.fly ? TIMING.peekOpen : TIMING.flyOpen); return; }
     const c = e.target.closest('[data-spell], .gph-card[data-item]'); if (!c || fs.open) return;
     clearTimeout(peekT); peekT = setTimeout(() => showPeek(c.dataset.spell ? 'spell' : 'item', c), TIMING.peekOpen);
   });
   host.addEventListener('pointerout', (e) => {
-    if (!e.target.closest('[data-spell], .gph-card[data-item], .gph-peek')) return;
-    clearTimeout(peekT); peekT = setTimeout(() => { if (!host.querySelector('.gph-peek:hover, [data-spell]:hover, .gph-card[data-item]:hover')) closePeek(); }, TIMING.peekClose);
+    if (!e.target.closest('[data-spell], .gph-card[data-item], .gph-ck[data-check], .gph-peek')) return;
+    clearTimeout(peekT); peekT = setTimeout(() => { if (!host.querySelector('.gph-peek:hover, [data-spell]:hover, .gph-card[data-item]:hover, .gph-ck[data-check]:hover')) closePeek(); }, TIMING.peekClose);
   });
   document.addEventListener('keydown', (e) => {
     const inField = e.target.closest?.('[data-find]');

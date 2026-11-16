@@ -379,7 +379,7 @@ section("every press the view draws has a host handler", () => {
   for (const [name, build] of Object.entries(STATES)) {
     const m = build(art);
     marks.push(V.RAIL({ ...m, util: { ...(m.util ?? {}), open: null } }, t));
-    if (m.sk) marks.push(V.FINDER(finderOf(m), t));
+    if (m.sk) marks.push(V.FINDER(finderOf(m), t), ...finderOf({ ...m, mode: "exploration" }).rows.filter((r) => !r.pinned).map((r) => V.SKILLFLY(r, t)));
     if (m.deck?.spells) marks.push(V.RANKS(m.deck.spells, t));
   }
   const fa = fighter();
@@ -759,7 +759,7 @@ section("the Hit Point field, tooltips and putting things away", () => {
   ok(known.traits.length === 1 && known.lines.length === 2 && known.actions[0].id === "use", "an item peek: traits, what is left and its doses, Use first");
   const hidden = itemPeek(item("x", "Elixir of Life", "consumable", { quantity: 1, level: { value: 9 }, traits: { value: ["healing"] }, identification: { unidentified: { name: "Unusual Vial" } } }, { isIdentified: false }), { t });
   ok(hidden.name === "Unusual Vial" && hidden.traits.length === 0 && !/9/.test(hidden.from), "an unidentified item peeks under its unidentified name, with no level and no traits");
-  ok(/p\.kind === "item"/.test(h) && /HOVER_PEEKS = new Set\(\["spell", "item"\]\)/.test(h), "the item peek has its presses, and closes when the pointer leaves");
+  ok(/p\.kind === "item"/.test(h) && /HOVER_PEEKS = new Set\(\["spell", "item", "skill"\]\)/.test(h), "the item peek has its presses, and closes when the pointer leaves");
   ok(!/data-item="[^"]*" title=/.test(V.ITEMS({ list: [{ id: "a", name: "Potion", qty: 1 }] }, t)), "an item card that peeks carries no tooltip under the peek");
   ok(/\[data-readonly\] button:not\([^)]*\.gph-card\[data-item\]/.test(css), "an observer's item card still peeks, like a spell");
   /* macros and ranks */
@@ -832,6 +832,41 @@ section("the skill sheet shows every skill, and never has to be opened", () => {
   ok(/querySelectorAll\("\[data-finder\] \[data-k\]"\)/.test(host) && /if \(e\.key === "Enter"\) \{ eat\(\); if \(c\) pressOf\(c\)\.click\(\)/.test(host), "Enter presses the selected key, a check or an action alike");
   ok(/d\.stat \?\? null\)/.test(host) && /rows\.find\(\(r\) => r\.key === stat\)\?\.actions\.find/.test(host) && /statistic: a\.skill\.slug/.test(host), "a press on the sheet rolls with the row it stands in");
   ok(/"data-skill-action", "data-stat"\]/.test(host), "the echo lands on the row that rolled, not on the action's first row");
+});
+
+section("a skill's key, rested on, offers that skill's actions", () => {
+  const host = src["host.mjs"], css = read("styles/pf2e-rail.css");
+  const m = Object.values(STATES).map((b) => b(art)).find((x) => x.sk && x.role !== "gm");
+  const all = finderOf({ ...m, mode: "exploration" });
+  const checks = K.checksOf(all);
+  ok(checks.length >= 16 && checks.every((c) => K.flyOf(all, c.check)?.key === c.key), "every key on the Skills tab has its row of the sheet behind it");
+  ok(K.flyOf(all, "skill:nope") === null && !K.flyOf({ rows: [{ pinned: true, check: undefined }] }, undefined), "a check with no row, or the pinned row, is no fly");
+  const ath = K.flyOf(all, "skill:athletics"), fly = V.SKILLFLY(ath, t);
+  const presses = [...fly.matchAll(/<button\b[^>]*>/g)].map((x) => x[0]);
+  ok(ath.actions.length >= 6 && ath.actions.every((a) => fly.includes(`data-skill-action="${a.id}" data-stat="athletics"`)), "the fly draws every action of the row, each rolled with that row's skill");
+  ok(presses.length > ath.actions.length && presses.every((b) => /data-skill-action="[^"]+" data-stat="athletics"/.test(b)), "every press in the fly is a skill action's own press (the MAP steps too)");
+  ok(ath.actions.some((a) => a.variants) && /data-variant="2"/.test(fly), "an attack-trait action keeps its three MAP steps in the fly");
+  ok(!/role="option"|data-k=|aria-selected/.test(fly), "the fly's keys are not the finder's options: the finder's arrow keys never count them");
+  ok(/data-fly="skill:athletics"/.test(fly) && /class="gph-peek gph-fly"/.test(fly), "the fly is a peek (it closes, sinks and takes presses as one) and names its skill");
+  ok(/class="gph-peek gph-fly"[^>]*data-tooltip-direction="LEFT"/.test(fly), "a row's tooltip opens beside the fly, never over the rows above it");
+  ok(/gph-flynone/.test(V.SKILLFLY({ ...ath, actions: [] }, t)), "a skill with no action says so instead of rising empty");
+  const key = V.SKILLTAB({ checks, suggested: [] }, t).match(/<button[^>]*class="gph-ck"[^>]*>/)[0];
+  ok(!/title=/.test(key) && /aria-label=/.test(key), "a key that flies carries no tooltip under the fly, and still says its name");
+  ok(/SKILL_KEY = "\.gph-ck\[data-check\]"/.test(host) && /e\.pointerType === "touch" \? null : e\.target\.closest\(SKILL_KEY\)/.test(host), "the fly opens for a pointer that can rest, never for a finger's press");
+  const T = src["const.mjs"];
+  ok(+T.match(/flyOpen: (\d+)/)[1] > +T.match(/peekOpen: (\d+)/)[1], "a key is pressed more than it is read: the fly waits longer than a card's peek");
+  ok(/peekSkill\(key\) \{\s*if \(!key\.isConnected \|\| this\.fs\.open \|\| this\.open\.drawer\) return;/.test(host), "no fly over the finder or a drawer");
+  ok(/this\.peek\.kind === "skill" \? this\.flyModel\(this\.peek\.id\) : this\.peek\.model/.test(host), "a redraw rebuilds an open fly: its numbers follow the MAP step");
+  ok(/mode: "exploration"/.test(host.slice(host.indexOf("flyModel(check) {"), host.indexOf("peekSkill(key) {"))), "the fly reads the catalogue useSkillAction looks a press up in");
+  ok(/const fly = button\?\.closest\?\.\("\.gph-fly"\)/.test(host), "an action that asks which variant asks over the key, not over a fly that is gone");
+  ok(/if \(fly\) D\.placeFly\(root, anchor, peek\)/.test(host), "the fly stands on its key");
+  ok(/this\.peek, \{ again: true \}\)/.test(host) && /if \(again\) peek\.classList\.add\("is-again"\)/.test(host) && /\.gph-peek\.is-again:not\(\.is-closing\) \{ animation: none; \}/.test(css), "a peek redrawn under the pointer does not rise again: mid-rise its rows sit a row low, and the press lands on the wrong action");
+  ok(/if \(this\.peek && !HOVER_PEEKS\.has\(this\.peek\.kind\)\) return;/.test(host), "a peek the player pressed for (which variant?) is never swapped for the fly of the key under the pointer");
+  /* placeFly: edge to edge with the key, inside the rail */
+  const style = new Map(), el = (r, w) => ({ getBoundingClientRect: () => r, offsetWidth: w, style: { setProperty: (k, v) => style.set(k, v) } });
+  Drive.placeFly(el({ left: 0, right: 1600, top: 600, bottom: 900, width: 1600 }), el({ left: 1500, right: 1590, top: 820, bottom: 844 }), el({}, 264));
+  ok(style.get("--gph-peek-y") === "80px" && style.get("--gph-peek-x") === "1336px", "the fly's foot is the key's top edge, and it never leaves the rail's width");
+  ok(/\.gph-fly \{[^}]*max-height: calc\(100vh - var\(--gph-peek-y/.test(css) && /\.gph-flyacts \{[^}]*overflow-y: auto/.test(css), "a fly taller than the screen above its key scrolls inside itself (900p)");
 });
 
 section("the Skills tab is the plain checks, one press each", () => {
