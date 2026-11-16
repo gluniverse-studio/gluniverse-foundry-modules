@@ -476,7 +476,9 @@ export class RailHost {
     if (arrive) { root.classList.add("is-arriving"); setTimeout(() => root.classList.remove("is-arriving"), D.token(root, "--gl-d-cinematic", 900)); }
     if (this.open.drawer && !this.fs.open) D.placeDrawer(root);
     if (this.fs.open) this.settleFinder();
-    if (this.peek) this.showPeek(this.peek.kind === "skill" ? this.flyModel(this.peek.id) : this.peek.model, root.querySelector(this.peek.anchor), this.peek);
+    /* a peek redrawn under a resting pointer stays where it stood: risen
+       again it slides a row down, onto the press beside the one aimed at */
+    if (this.peek) this.showPeek(this.peek.kind === "skill" ? this.flyModel(this.peek.id) : this.peek.model, root.querySelector(this.peek.anchor), this.peek, { again: true });
     this.prev = this.model;
     this.dock();
     this.publishEdge();
@@ -577,7 +579,7 @@ export class RailHost {
 
   /* ── peeks ──────────────────────────────────────────────────── */
 
-  showPeek(model, anchor, meta) {
+  showPeek(model, anchor, meta, { again = false } = {}) {
     const root = this.root;
     if (!root || !anchor || !model) return;
     root.querySelector(".gph-peek")?.remove();
@@ -585,6 +587,7 @@ export class RailHost {
     const fly = meta.kind === "skill";
     root.insertAdjacentHTML("beforeend", fly ? V.SKILLFLY(model, t) : V.PEEK(model, t));
     const peek = root.querySelector(".gph-peek");
+    if (again) peek.classList.add("is-again");
     (anchor.closest(".gph-held") ?? anchor.closest(".gph-row") ?? anchor).classList.add("is-peek");
     /* a peek says everything its press's tooltip would */
     if (anchor.contains(game.tooltip?.element ?? null)) game.tooltip.deactivate();
@@ -614,6 +617,9 @@ export class RailHost {
 
   peekSkill(key) {
     if (!key.isConnected || this.fs.open || this.open.drawer) return;
+    /* a question the player pressed for (which variant?) is not swapped for
+       the key it left the pointer resting on */
+    if (this.peek && !HOVER_PEEKS.has(this.peek.kind)) return;
     const check = key.dataset.check;
     this.showPeek(this.flyModel(check), key, { kind: "skill", id: check, anchor: `.gph-ck[data-check="${CSS.escape(check)}"]` });
   }

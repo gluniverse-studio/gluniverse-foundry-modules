@@ -859,6 +859,8 @@ section("a skill's key, rested on, offers that skill's actions", () => {
   ok(/mode: "exploration"/.test(host.slice(host.indexOf("flyModel(check) {"), host.indexOf("peekSkill(key) {"))), "the fly reads the catalogue useSkillAction looks a press up in");
   ok(/const fly = button\?\.closest\?\.\("\.gph-fly"\)/.test(host), "an action that asks which variant asks over the key, not over a fly that is gone");
   ok(/if \(fly\) D\.placeFly\(root, anchor, peek\)/.test(host), "the fly stands on its key");
+  ok(/this\.peek, \{ again: true \}\)/.test(host) && /if \(again\) peek\.classList\.add\("is-again"\)/.test(host) && /\.gph-peek\.is-again:not\(\.is-closing\) \{ animation: none; \}/.test(css), "a peek redrawn under the pointer does not rise again: mid-rise its rows sit a row low, and the press lands on the wrong action");
+  ok(/if \(this\.peek && !HOVER_PEEKS\.has\(this\.peek\.kind\)\) return;/.test(host), "a peek the player pressed for (which variant?) is never swapped for the fly of the key under the pointer");
   /* placeFly: edge to edge with the key, inside the rail */
   const style = new Map(), el = (r, w) => ({ getBoundingClientRect: () => r, offsetWidth: w, style: { setProperty: (k, v) => style.set(k, v) } });
   Drive.placeFly(el({ left: 0, right: 1600, top: 600, bottom: 900, width: 1600 }), el({ left: 1500, right: 1590, top: 820, bottom: 844 }), el({}, 264));

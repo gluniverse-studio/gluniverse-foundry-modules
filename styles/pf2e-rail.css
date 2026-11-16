@@ -895,6 +895,8 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
 /* ══ THE PEEK ═════════════════════════════════════════════════════ */
 .gph-peek { position: absolute; z-index: 50; width: 300px; left: var(--gph-peek-x, 40%); bottom: var(--gph-peek-y, 150px);
   animation: gph-rise var(--gl-d-quick) var(--gl-ease); filter: drop-shadow(0 18px 28px var(--gl-is-shade)); }
+/* redrawn by a render while it is up: it is already there */
+.gph-peek.is-again:not(.is-closing) { animation: none; }
 /* The skill fly: a skill's actions, standing on its key. It is the sheet's
    own keys in one column; taller than the screen above it, it scrolls. */
 .gph-fly { width: 264px; display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: calc(100vh - var(--gph-peek-y, 150px) - 12px);
