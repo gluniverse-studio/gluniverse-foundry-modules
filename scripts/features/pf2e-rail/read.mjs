@@ -595,6 +595,14 @@ export function inlineText(s, { loc = (k) => k, config = {} } = {}) {
   const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
   const skill = (slug) => { const k = config.skills?.[slug]; return k ? loc(k.label ?? k) : cap(String(slug).replace(/-/g, " ")); };
   return String(s ?? "")
+    /* a glossary ability (Regeneration, Ferocity…) is nothing but
+       `@Localize[key]`: its text is the localized string, which carries
+       markup and inline syntax of its own. An unknown key reads as nothing. */
+    .replace(/@Localize\[([^\]]*)\](?:\{([^}]*)\})?/g, (_, key, label) => {
+      if (label) return label;
+      const v = loc(key);
+      return v && v !== key ? stripHTML(v) : "";
+    })
     .replace(/@Check\[([^\]]*)\](?:\{([^}]*)\})?/g, (_, body, label) => {
       if (label) return label;
       const parts = body.split("|"), opt = Object.fromEntries(parts.filter((p) => p.includes(":")).map((p) => { const i = p.indexOf(":"); return [p.slice(0, i), p.slice(i + 1)]; }));
@@ -602,7 +610,7 @@ export function inlineText(s, { loc = (k) => k, config = {} } = {}) {
       const dc = /^\d+$/.test(opt.dc ?? "") ? ` DC ${opt.dc}` : "";
       return (type ? skill(type) : "") + dc;
     })
-    .replace(/@(?:UUID|Compendium|Item|Actor|JournalEntry|Template|Localize)\[[^\]]*\](?:\{([^}]*)\})?/g, (_, label) => label ?? "")
+    .replace(/@(?:UUID|Compendium|Item|Actor|JournalEntry|Template)\[[^\]]*\](?:\{([^}]*)\})?/g, (_, label) => label ?? "")
     .replace(/@Damage\[((?:[^\[\]]|\[[^\]]*\])*)\](?:\{([^}]*)\})?/g, (_, f, label) => label ?? f.replace(/\[[^\]]*\]/g, ""))
     .replace(/\[\[\/(?:b?r|gmr|pr)\s+([^\]]*?)\]\](?:\{([^}]*)\})?/g, (_, f, label) => label ?? f.replace(/#.*$/, "").trim())
     .replace(/\s+([,.;:])/g, "$1").replace(/\s+/g, " ").trim();

@@ -197,6 +197,9 @@
 }
 .gph-nameplate > b { font-size: var(--gl-is-t-title); font-weight: 750; line-height: 1.1; letter-spacing: -0.005em; text-wrap: balance;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* The Hero Point gems stand over the plinth's right edge; a long name steps
+   clear of them, as the subtitle does. */
+.gph-plinth:has(.gph-gems) .gph-nameplate > b { padding-right: 14px; }
 .gph-sub { display: flex; align-items: center; gap: 7px; min-width: 0; padding-right: 14px; }
 .gph-spd { flex: none; font-family: var(--gph-num); font-size: var(--gl-is-t-meta); font-weight: 600; color: var(--gph-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gph[data-folded] .gph-spd { display: none; }
@@ -1372,8 +1375,9 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
 .gph-pc-dc input::-webkit-inner-spin-button, .gph-pc-dc input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .gph-pc-dc:focus-within { box-shadow: inset 0 0 0 1px var(--gph-paper); }
 .gph-pc-show { flex: none; display: flex; align-items: center; gap: 6px; font-size: var(--gl-is-t-meta); font-weight: 500; color: var(--gph-dim); cursor: pointer; }
-.gph-pc-show input { appearance: none; width: 13px; height: 13px; margin: 0; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); cursor: pointer; }
-.gph-pc-show input:checked { background: var(--gph-paper); box-shadow: inset 0 0 0 3px var(--gph-ink-0), inset 0 0 0 4px var(--gph-paper); }
+.gph .gph-pc-show input[type="checkbox"] { all: unset; flex: none; width: 13px; height: 13px; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); cursor: pointer; }
+.gph .gph-pc-show input[type="checkbox"]::before, .gph .gph-pc-show input[type="checkbox"]::after { content: none; }
+.gph .gph-pc-show input[type="checkbox"]:checked { background: var(--gph-paper); box-shadow: inset 0 0 0 3px var(--gph-ink-0), inset 0 0 0 4px var(--gph-paper); }
 .gph-pc-show:hover { color: var(--gph-text); }
 .gph-pc-hint { min-width: 0; margin-left: auto; font-size: var(--gl-is-t-meta); line-height: 1.35; color: var(--gph-faint); text-align: right; max-width: 34ch; }
 .gph-pc-live { min-width: 0; margin-left: auto; display: flex; align-items: center; gap: 7px; color: var(--gph-amber); }
@@ -1383,10 +1387,13 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
 .gph-pc-end { flex: none; height: 24px; min-height: 24px; max-height: 24px; padding: 0 10px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gph-text);
   background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease); }
 .gph-pc-end:hover { background: var(--gph-ink-5); }
-.gph-pct { border-collapse: separate; border-spacing: 2px; margin: 4px -2px 0; }
-.gph-pct thead th { position: sticky; top: 40px; z-index: 1; padding: 6px 2px 5px; background: var(--gph-ink-1); vertical-align: bottom; font-weight: 600; }
+/* Foundry styles every table (a striped body, a filled head, borders) and
+   every checkbox; the grid states its own, at the rail's specificity. */
+.gph .gph-pct { width: auto; border-collapse: separate; border-spacing: 2px; margin: 4px -2px 0; border: 0; background: none; }
+.gph .gph-pct :is(thead, tbody, tr, th, td) { background: none; border: 0; text-shadow: none; }
+.gph .gph-pct thead th { padding: 6px 2px 5px; vertical-align: bottom; font-weight: 600; }
 .gph-pct thead th > img { display: block; width: 26px; height: 26px; margin: 0 auto 3px; object-fit: cover; object-position: 50% 12%; border: 0; box-shadow: 0 0 0 1px var(--gph-line-2); }
-.gph-pct thead th > span { display: block; max-width: 76px; margin: 0 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gl-is-t-meta); font-weight: 650; color: var(--gph-text); }
+.gph-pct thead th > span { display: block; max-width: 112px; margin: 0 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gl-is-t-meta); font-weight: 650; color: var(--gph-text); }
 .gph-pct tbody th { padding: 0; text-align: left; font-weight: inherit; }
 .gph-pct td { padding: 0; }
 .gph-pct tr[data-first] > * { padding-top: 6px; }
@@ -1446,3 +1453,8 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
   .gph-skrow.is-pins { padding-bottom: 3px; margin-bottom: 2px; }
   .gph-fk, .gph-fa, .gph-fab { height: 22px; min-height: 22px; max-height: 22px; }
 }
+
+/* The party's checks stand where the party stack does, and say the same
+   thing better; the stat block steps clear of the GM's two columns of seats. */
+.gph:has(.gph-pc) .gph-stack { opacity: 0; translate: -8px 0; pointer-events: none; }
+.gph[data-role="gm"]:has(.gph-seat + .gph-seat) .gph-drawer:has(.gph-statblock) { left: 380px; }
