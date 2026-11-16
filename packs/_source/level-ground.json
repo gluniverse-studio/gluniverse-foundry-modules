@@ -1,0 +1,48 @@
+[
+  {
+    "_id": "lvg0act0breakawy",
+    "name": "Break Away",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/Passive.webp",
+    "system": {
+      "slug": "break-away",
+      "category": "interaction",
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "traits": { "rarity": "common", "value": [] },
+      "description": { "value": "<p><strong>Requirements</strong> You and each other PC who intends to flee agree to do so. It is the start of a PC's turn, or an encounter is about to begin and the opposition has noticed the party.</p><hr /><p>The encounter ends for you and the other fleeing PCs. Each of you attempts one skill check against the Break Away DC, using a skill that fits how you get away: Athletics to outrun the pursuer, Acrobatics to get past an obstacle, Stealth to hide, Survival to lose the pursuer in the wild, or Deception to misdirect it. Reach does not apply to this check, and you can't use Assurance on it. The GM can grant a circumstance bonus of +2 to +4 to your check for a spell or item that helps you escape, such as <em>invisibility</em>, fog, or a wall, or can decide that you escape without a check.</p><hr /><p><strong>Critical Success</strong> You escape, and one ally of your choice gains a +2 circumstance bonus to their check to Break Away.</p><p><strong>Success</strong> You escape.</p><p><strong>Failure</strong> Each pursuer that can reach a PC who failed acts once, against one of them, using a single action or one activity of up to 2 actions. An area effect includes every PC who failed. If you are still conscious after this, you escape.</p><p><strong>Critical Failure</strong> You are caught. The encounter resumes around you, with any PCs who choose to return. After 1 full round, you and anyone who returned can attempt to Break Away again.</p><hr /><p><strong>Break Away DC</strong> 14 + one third of the pursuer's level, rounded down, for the highest-level creature that gives chase (13 below level 0). The pursuer is faster than you: +2. The pursuer flies, burrows, or teleports, and you have no cover you can reach: +5, in place of the +2. The ground favors you: −2. You lead or carry one willing ally, who attempts no check and shares your result: +2.</p><p>The party earns no XP for any encounter in which Break Away was used.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "lvg0act0tempo000",
+    "name": "Tempo",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/FreeAction.webp",
+    "system": {
+      "slug": "tempo",
+      "category": "offensive",
+      "actionType": { "value": "free" },
+      "actions": { "value": null },
+      "frequency": { "max": 1, "per": "round" },
+      "traits": { "rarity": "common", "value": [] },
+      "description": { "value": "<p><strong>Frequency</strong> once per round</p><p><strong>Trigger</strong> Another creature's turn ends.</p><hr /><p>The Solo gains 1 action and uses it immediately. An attack made with this action takes no multiple attack penalty. The Solo loses Tempo only while it is unconscious, paralyzed, petrified, or stunned for a duration. Slowed, and stunned with a value, never remove or reduce this action, and using it doesn't reduce the Solo's stunned value. The frequency resets at the start of the Solo's turn.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "lvg0act0unbowed0",
+    "name": "Unbowed",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/Passive.webp",
+    "system": {
+      "slug": "unbowed",
+      "category": "defensive",
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "traits": { "rarity": "common", "value": [] },
+      "description": { "value": "<p>Each effect imposed by an enemy that puts a condition or penalty on the Solo ends at the end of the third turn the Solo starts after the effect is imposed, unless the Solo critically failed its saving throw, or the check against its DC critically succeeded. Unbowed doesn't end persistent damage, an affliction, the grabbed or restrained condition, or any effect the Solo could end by using an action. Against an effect with the incapacitation trait, the Solo always gains the full +10 Outmatched bonus and treats a critical failure as a failure, whatever the effect's level.</p>" },
+      "rules": []
+    }
+  }
+]

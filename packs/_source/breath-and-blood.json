@@ -1,0 +1,214 @@
+[
+  {
+    "_id": "bab0feat0contrec",
+    "name": "Continual Recovery (Breath and Blood)",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "continual-recovery",
+      "category": "skill",
+      "level": { "value": 2 },
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "prerequisites": { "value": [{ "value": "expert in Medicine" }] },
+      "traits": { "rarity": "common", "value": ["general", "healing", "skill"] },
+      "description": { "value": "<p>Your @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0treatwnd]{Treat Wounds} restores at least half the patient's maximum Hit Points, in place of a quarter. This minimum is never less than the patient's level.</p><p><em>Breath and Blood replaces the printed Continual Recovery with this feat. It never changes Battle Medicine.</em></p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0feat0wardmed",
+    "name": "Ward Medic (Breath and Blood)",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "ward-medic",
+      "category": "skill",
+      "level": { "value": 1 },
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "prerequisites": { "value": [{ "value": "trained in Medicine" }] },
+      "traits": { "rarity": "common", "value": ["general", "healing", "skill"] },
+      "description": { "value": "<p>When you @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0treatwnd]{Treat Wounds} or Treat Disease, you can treat up to two patients in the same 10 minutes, or up to four if you are a master in Medicine. You attempt one check against one DC and make one healing roll for all of them. Each patient pays separately and has their own minimum.</p><p><em>Breath and Blood replaces the printed Ward Medic with this feat. It never changes Battle Medicine.</em></p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0feat0fieldsg",
+    "name": "Field Surgeon",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "field-surgeon",
+      "category": "skill",
+      "level": { "value": 2 },
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "prerequisites": { "value": [{ "value": "expert in Medicine" }] },
+      "frequency": { "max": 1, "per": "day" },
+      "traits": { "rarity": "common", "value": ["general", "healing", "skill"] },
+      "description": { "value": "<p><strong>Frequency</strong> once per day</p><hr /><p>When you @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0treatwnd]{Treat Wounds}, you can name one patient of that treatment before any patient decides whether to pay. That patient regains Hit Points without spending a Resolve Point. In every other way the treatment works as if that patient had paid: the patient regains at least a quarter of their maximum Hit Points, or at least half if you have Continual Recovery.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0feat0encword",
+    "name": "Encouraging Words (Breath and Blood)",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "encouraging-words",
+      "category": "skill",
+      "level": { "value": 1 },
+      "actionType": { "value": "action" },
+      "actions": { "value": 1 },
+      "prerequisites": { "value": [{ "value": "trained in Diplomacy or Intimidation" }] },
+      "traits": { "rarity": "common", "value": ["auditory", "concentrate", "emotion", "general", "linguistic", "mental", "skill"] },
+      "description": { "value": "<p>One ally within 30 feet who has at least 1 Hit Point regains Stamina Points equal to 5 + twice your level, up to the ally's maximum. The ally is then immune to Encouraging Words until after their next night's rest.</p><p>Encouraging Words restores Stamina Points only. It isn't healing, and the ally pays nothing.</p><p><em>Breath and Blood replaces the printed Encouraging Words with this feat.</em></p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0feat0steelrs",
+    "name": "Steel Your Resolve (Breath and Blood)",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "steel-your-resolve",
+      "category": "general",
+      "level": { "value": 3 },
+      "actionType": { "value": "action" },
+      "actions": { "value": 1 },
+      "prerequisites": { "value": [] },
+      "frequency": { "max": 1, "per": "day" },
+      "traits": { "rarity": "common", "value": ["general"] },
+      "description": { "value": "<p><strong>Frequency</strong> once per day</p><hr /><p>You @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0catchbrt]{Catch Your Breath} without spending a Resolve Point, even if you have none. The frequency of Catch Your Breath still applies.</p><p><em>Breath and Blood replaces the printed Steel Your Resolve with this feat.</em></p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0feat0surge00",
+    "name": "Surge",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "surge",
+      "category": "general",
+      "level": { "value": 7 },
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "prerequisites": { "value": [] },
+      "traits": { "rarity": "common", "value": ["general"] },
+      "description": { "value": "<p>When you @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0catchbrt]{Catch Your Breath}, you can Stride or Strike once as part of the same action.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0feat0batmed0",
+    "name": "Battle Medicine (Breath and Blood)",
+    "type": "feat",
+    "img": "icons/sundries/books/book-red-exclamation.webp",
+    "system": {
+      "slug": "battle-medicine",
+      "category": "skill",
+      "level": { "value": 1 },
+      "actionType": { "value": "action" },
+      "actions": { "value": 1 },
+      "prerequisites": { "value": [{ "value": "trained in Medicine" }] },
+      "traits": { "rarity": "common", "value": ["general", "healing", "manipulate", "skill"] },
+      "description": { "value": "<p><strong>Requirements</strong> You are holding or wearing a healer's toolkit.</p><hr /><p>You patch up yourself or an adjacent living ally. Battle Medicine is paid healing: the patient decides whether to spend 1 Resolve Point before you act. If the patient pays, choose a DC and attempt a Medicine check, using the DCs, the degrees of success, the amounts, and the minimum of @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0treatwnd]{Treat Wounds}. If you use this action, the patient is then immune to your Battle Medicine for 1 day, as printed, whether or not the patient paid. Battle Medicine isn't Treat Wounds.</p><p>The feats Continual Recovery, Ward Medic, and Field Surgeon change Treat Wounds only. They never change Battle Medicine.</p><p><em>For a patient with one pool, use the printed Battle Medicine.</em></p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0act0treatwnd",
+    "name": "Treat Wounds (Breath and Blood)",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/Passive.webp",
+    "system": {
+      "slug": "treat-wounds",
+      "category": "interaction",
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "traits": { "rarity": "common", "value": ["exploration", "healing", "manipulate"] },
+      "description": { "value": "<p><strong>Requirements</strong> You are trained in Medicine, and you are holding or wearing a healer's toolkit.</p><hr /><p>You spend 10 minutes treating one injured living creature, which can be yourself. Treat Wounds is paid healing: the patient decides whether to spend 1 Resolve Point before you begin. If the patient pays, choose a DC that your proficiency rank in Medicine allows and attempt a Medicine check. Whatever the result, the patient regains at least a quarter of their maximum Hit Points, and never less than their level. The patient doesn't become immune to Treat Wounds and can be treated again in the next 10 minutes for another Resolve Point. The option to treat for 1 hour isn't used.</p><table><thead><tr><th>Rank</th><th>DC</th><th>DC with Level Ground</th><th>Added on a success</th></tr></thead><tbody><tr><td>Trained</td><td>15</td><td>14</td><td>0</td></tr><tr><td>Expert</td><td>20</td><td>16</td><td>10</td></tr><tr><td>Master</td><td>30</td><td>18</td><td>30</td></tr><tr><td>Legendary</td><td>40</td><td>20</td><td>50</td></tr></tbody></table><hr /><p><strong>Critical Success</strong> The patient regains 4d8 Hit Points plus the amount added for the DC.</p><p><strong>Success</strong> The patient regains 2d8 Hit Points plus the amount added for the DC.</p><p><strong>Failure</strong> The check restores nothing.</p><p><strong>Critical Failure</strong> The check restores nothing and deals no damage.</p><hr /><p>Without the Ward Medic feat, you can Treat Wounds for only one patient in the same 10 minutes. For a patient with one pool, use the printed Treat Wounds.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0act0catchbrt",
+    "name": "Catch Your Breath",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/OneAction.webp",
+    "system": {
+      "slug": "catch-your-breath",
+      "category": "defensive",
+      "actionType": { "value": "action" },
+      "actions": { "value": 1 },
+      "frequency": { "max": 1, "per": "PT10M" },
+      "traits": { "rarity": "common", "value": [] },
+      "description": { "value": "<p><strong>Frequency</strong> once per breather</p><p><strong>Cost</strong> 1 Resolve Point</p><hr /><p>You steady yourself. You regain Stamina Points equal to half your maximum Stamina Points or 5, whichever is more, up to your maximum.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0act0holdon00",
+    "name": "Hold On",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/FreeAction.webp",
+    "system": {
+      "slug": "hold-on",
+      "category": "defensive",
+      "actionType": { "value": "free" },
+      "actions": { "value": null },
+      "traits": { "rarity": "common", "value": [] },
+      "description": { "value": "<p><strong>Cost</strong> 1 Resolve Point</p><p><strong>Trigger</strong> You are about to attempt a recovery check.</p><hr /><p>You don't roll. The recovery check is a success, and your dying value decreases by 1. If this reduces your dying value to 0, you lose the dying condition, remain unconscious at 0 Hit Points, and gain or increase the wounded condition, as printed. You can use Hold On while unconscious.</p><p><strong>Waking</strong> If you are unconscious at 0 Hit Points, you aren't dying, and nothing has healed you, you wake with 1 Hit Point at the end of the next breather, in time to regain your Stamina Points. This Hit Point doesn't end the wounded condition.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0act0lendstr0",
+    "name": "Lend Strength",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/OneAction.webp",
+    "system": {
+      "slug": "lend-strength",
+      "category": "interaction",
+      "actionType": { "value": "action" },
+      "actions": { "value": 1 },
+      "traits": { "rarity": "common", "value": [] },
+      "description": { "value": "<p><strong>Requirements</strong> You have at least 1 Resolve Point. An ally within 30 feet has fewer Resolve Points than their maximum and hasn't received a Resolve Point from Lend Strength since their last night's rest.</p><hr /><p>With a hand on the shoulder or a shout across the fight, you give the ally some of your own determination. You lose 1 Resolve Point and the ally gains 1 Resolve Point. The ally can't receive another Resolve Point from Lend Strength until after their next night's rest. A dying or unconscious ally can receive the point.</p><p>During a breather that you share with the ally, you can Lend Strength without spending an action.</p><p>A dying ally who receives a Resolve Point can spend it to @UUID[Compendium.gluniverse-foundry-modules.breath-and-blood.Item.bab0act0holdon00]{Hold On} at their next recovery check.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0act0bindwnds",
+    "name": "Bind Your Own Wounds",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/Passive.webp",
+    "system": {
+      "slug": "bind-your-own-wounds",
+      "category": "interaction",
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "traits": { "rarity": "common", "value": ["exploration", "healing"] },
+      "description": { "value": "<p><strong>Cost</strong> 1 Resolve Point</p><hr /><p>You spend a 10-minute breather tending your own wounds, with no healer and no check. This is your activity for that breather, so you can't Refocus or Treat Wounds during it. You regain Hit Points equal to a quarter of your maximum Hit Points. This amount is never less than your level.</p>" },
+      "rules": []
+    }
+  },
+  {
+    "_id": "bab0act0breather",
+    "name": "Breather",
+    "type": "action",
+    "img": "systems/pf2e/icons/actions/Passive.webp",
+    "system": {
+      "slug": "breather",
+      "category": "interaction",
+      "actionType": { "value": "passive" },
+      "actions": { "value": null },
+      "traits": { "rarity": "common", "value": ["exploration"] },
+      "description": { "value": "<p>A <strong>breather</strong> is 10 minutes of rest in one place. At the end of a breather, you regain all your Stamina Points. A breather costs nothing and requires no check.</p><ul><li>During a breather you can sit, stand guard, talk, or perform a quiet 10-minute activity, such as Refocus, Repair, Identify Magic, or Treat Wounds, and you can be treated. Traveling, searching, and any strenuous activity aren't rest.</li><li>An interrupted breather restores no Stamina Points. An interrupted Treat Wounds or Bind Your Own Wounds restores nothing and costs nothing: a Resolve Point spent on it is returned.</li><li>You must have at least 1 Hit Point at the end of the breather to regain Stamina Points.</li><li>At the end of a breather, you lose the wounded condition if you have regained Hit Points since your last encounter ended or since your last breather, whichever is later, or if your Hit Points are at their maximum. A night's rest also ends it.</li></ul>" },
+      "rules": []
+    }
+  }
+]

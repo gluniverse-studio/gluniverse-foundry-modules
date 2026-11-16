@@ -1,0 +1,2428 @@
+{
+ "source": "pf2e 8.7.0 spell-effects pack (excerpt: name, type, slug, level, rules)",
+ "items": [
+  {
+   "name": "Spell Effect: Animal Form (Bear)",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-animal-form-bear",
+    "level": {
+     "value": 2
+    },
+    "rules": [
+     {
+      "brackets": [
+       {
+        "start": 2,
+        "value": {
+         "armorClass": {
+          "modifier": "16 + @actor.level"
+         },
+         "skills": {
+          "athletics": {
+           "modifier": 9
+          }
+         },
+         "strikes": {
+          "claw": {
+           "damage": {
+            "modifier": 1
+           },
+           "modifier": 9
+          },
+          "jaws": {
+           "damage": {
+            "modifier": 1
+           },
+           "modifier": 9
+          }
+         },
+         "tempHP": 5
+        }
+       },
+       {
+        "start": 3,
+        "value": {
+         "armorClass": {
+          "modifier": "17 + @actor.level"
+         },
+         "skills": {
+          "athletics": {
+           "modifier": 14
+          }
+         },
+         "strikes": {
+          "claw": {
+           "damage": {
+            "modifier": 5
+           },
+           "modifier": 14
+          },
+          "jaws": {
+           "damage": {
+            "modifier": 5
+           },
+           "modifier": 14
+          }
+         },
+         "tempHP": 10
+        }
+       },
+       {
+        "start": 4,
+        "value": {
+         "armorClass": {
+          "modifier": "18 + @actor.level"
+         },
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 16
+          }
+         },
+         "strikes": {
+          "claw": {
+           "damage": {
+            "modifier": 9
+           },
+           "modifier": 16,
+           "traits": [
+            "unarmed",
+            "agile",
+            "reach"
+           ]
+          },
+          "jaws": {
+           "damage": {
+            "modifier": 9
+           },
+           "modifier": 16,
+           "traits": [
+            "unarmed",
+            "reach"
+           ]
+          }
+         },
+         "tempHP": 15
+        }
+       },
+       {
+        "start": 5,
+        "value": {
+         "armorClass": {
+          "modifier": "18 + @actor.level"
+         },
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 20
+          }
+         },
+         "strikes": {
+          "claw": {
+           "damage": {
+            "dice": 2,
+            "modifier": 7
+           },
+           "modifier": 18,
+           "traits": [
+            "unarmed",
+            "agile",
+            "reach-15"
+           ]
+          },
+          "jaws": {
+           "damage": {
+            "dice": 4,
+            "modifier": 7
+           },
+           "modifier": 18,
+           "traits": [
+            "unarmed",
+            "reach-15"
+           ]
+          }
+         },
+         "tempHP": 20
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "senses": {
+        "low-light-vision": {},
+        "scent": {
+         "acuity": "imprecise",
+         "range": 30
+        }
+       },
+       "size": "med",
+       "speeds": {
+        "land": 30
+       },
+       "strikes": {
+        "claw": {
+         "ability": "str",
+         "baseType": "claw",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "slashing",
+          "dice": 1,
+          "die": "d8"
+         },
+         "img": "icons/commodities/claws/claw-bear-brown.webp",
+         "traits": [
+          "unarmed",
+          "agile"
+         ]
+        },
+        "jaws": {
+         "ability": "str",
+         "baseType": "jaws",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "piercing",
+          "dice": 2,
+          "die": "d8"
+         },
+         "img": "icons/creatures/abilities/mouth-teeth-long-red.webp",
+         "traits": [
+          "unarmed"
+         ]
+        }
+       },
+       "traits": [
+        "animal"
+       ]
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Dragon Form",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-dragon-form",
+    "level": {
+     "value": 6
+    },
+    "rules": [
+     {
+      "choices": [
+       {
+        "label": "PF2E.Dragon.Adamantine",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "bludgeoning",
+         "dragonType": "adamantine",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": 20,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Barrage",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "force",
+         "dragonType": "barrage",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Bog",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "acid",
+         "dragonType": "bog",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Brine",
+        "value": {
+         "breathShape": "line",
+         "damageType": "bludgeoning",
+         "dragonType": "brine",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Cinder",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "fire",
+         "dragonType": "cinder",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Cloud",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "electricity",
+         "dragonType": "cloud",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Conspirator",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "poison",
+         "dragonType": "conspirator",
+         "saveType": "fortitude",
+         "speeds": {
+          "burrow": null,
+          "climb": 40,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Coral",
+        "value": {
+         "breathShape": "line",
+         "damageType": "bludgeoning",
+         "dragonType": "coral",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Crystal",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "piercing",
+         "dragonType": "crystal",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Delight",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "spirit",
+         "dragonType": "delight",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Despair",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "sonic",
+         "dragonType": "despair",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Diabolic",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "fire",
+         "dragonType": "diabolic",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Empyreal",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "spirit",
+         "dragonType": "empyreal",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Executor",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "sonic",
+         "dragonType": "executor",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Forest",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "piercing",
+         "dragonType": "forest",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Fortune",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "force",
+         "dragonType": "fortune",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Horned",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "poison",
+         "dragonType": "horned",
+         "saveType": "fortitude",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Magma",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "fire",
+         "dragonType": "magma",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": 20,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Mirage",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "mental",
+         "dragonType": "mirage",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": 40,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Mocking",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "bludgeoning",
+         "dragonType": "mocking",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Oath",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "spirit",
+         "dragonType": "oath",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Omen",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "mental",
+         "dragonType": "omen",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Phase",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "force",
+         "dragonType": "phase",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Requiem",
+        "value": {
+         "breathShape": "line",
+         "damageType": "spirit",
+         "dragonType": "requiem",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Resurrection",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "void",
+         "dragonType": "resurrection",
+         "saveType": "fortitude",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Rime",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "cold",
+         "dragonType": "rime",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Rune",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "fire",
+         "dragonType": "rune",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Sage",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "mental",
+         "dragonType": "sage",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Sea",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "bludgeoning",
+         "dragonType": "sea",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Sky",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "electricity",
+         "dragonType": "sky",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "divine"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Sovereign",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "mental",
+         "dragonType": "sovereign",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Stormcrown",
+        "value": {
+         "breathShape": "line",
+         "damageType": "electricity",
+         "dragonType": "stormcrown",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "primal"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Time",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "force",
+         "dragonType": "time",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Umbral",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "void",
+         "dragonType": "umbral",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Underworld",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "fire",
+         "dragonType": "underworld",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": 20,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Vizier",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "fire",
+         "dragonType": "vizier",
+         "saveType": "reflex",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": 60
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Vorpal",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "void",
+         "dragonType": "vorpal",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Wailing",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "sonic",
+         "dragonType": "wailing",
+         "saveType": "fortitude",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Whisper",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "mental",
+         "dragonType": "whisper",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": null,
+          "swim": null
+         },
+         "tradition": "occult"
+        }
+       },
+       {
+        "label": "PF2E.Dragon.Wish",
+        "value": {
+         "breathShape": "cone",
+         "damageType": "mental",
+         "dragonType": "wish",
+         "saveType": "will",
+         "speeds": {
+          "burrow": null,
+          "climb": 40,
+          "swim": null
+         },
+         "tradition": "arcane"
+        }
+       }
+      ],
+      "flag": "dragonForm",
+      "key": "ChoiceSet",
+      "prompt": "PF2E.SpecificRule.DragonDisciple.Prompt"
+     },
+     {
+      "key": "RollOption",
+      "option": "dragon-form:{item|flags.system.rulesSelections.dragonForm.dragonType}"
+     },
+     {
+      "key": "RollOption",
+      "option": "dragon-form-tradition:{item|flags.system.rulesSelections.dragonForm.tradition}"
+     },
+     {
+      "brackets": [
+       {
+        "start": 6,
+        "value": {
+         "armorClass": {
+          "modifier": "18 + @actor.level"
+         },
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 23
+          }
+         },
+         "strikes": {
+          "claw": {
+           "damage": {
+            "modifier": 6
+           },
+           "modifier": 22
+          },
+          "jaws": {
+           "damage": {
+            "modifier": 6
+           },
+           "modifier": 22
+          },
+          "tail": {
+           "damage": {
+            "modifier": 6
+           },
+           "modifier": 22
+          }
+         },
+         "tempHP": 10
+        }
+       },
+       {
+        "start": 8,
+        "value": {
+         "armorClass": {
+          "modifier": "21 + @actor.level"
+         },
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 28
+          }
+         },
+         "strikes": {
+          "claw": {
+           "damage": {
+            "modifier": 12
+           },
+           "modifier": 28,
+           "traits": [
+            "unarmed",
+            "agile",
+            "reach-10"
+           ]
+          },
+          "jaws": {
+           "damage": {
+            "modifier": 12
+           },
+           "modifier": 28,
+           "traits": [
+            "unarmed",
+            "reach-10"
+           ]
+          },
+          "tail": {
+           "damage": {
+            "modifier": 12
+           },
+           "modifier": 28,
+           "traits": [
+            "unarmed",
+            "reach-15"
+           ]
+          }
+         },
+         "tempHP": 15
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "hasHands": true,
+       "resistances": [
+        {
+         "type": "{item|flags.system.rulesSelections.dragonForm.damageType}",
+         "value": 10
+        }
+       ],
+       "senses": {
+        "darkvision": {},
+        "scent": {
+         "acuity": "imprecise",
+         "range": 60
+        }
+       },
+       "speeds": {
+        "burrow": "@item.flags.system.rulesSelections.dragonForm.speeds.burrow",
+        "climb": "@item.flags.system.rulesSelections.dragonForm.speeds.climb",
+        "fly": 100,
+        "land": 40,
+        "swim": "@item.flags.system.rulesSelections.dragonForm.speeds.swim"
+       },
+       "strikes": {
+        "claw": {
+         "baseType": "claw",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "slashing",
+          "dice": 3,
+          "die": "d10"
+         },
+         "img": "icons/creatures/claws/claw-scaled-red.webp",
+         "traits": [
+          "unarmed",
+          "agile"
+         ]
+        },
+        "jaws": {
+         "baseType": "jaws",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "piercing",
+          "dice": 2,
+          "die": "d12"
+         },
+         "img": "icons/creatures/abilities/mouth-teeth-long-red.webp",
+         "traits": [
+          "unarmed"
+         ]
+        },
+        "tail": {
+         "category": "unarmed",
+         "damage": {
+          "damageType": "bludgeoning",
+          "dice": 3,
+          "die": "d10"
+         },
+         "traits": [
+          "unarmed",
+          "reach-10"
+         ]
+        }
+       },
+       "traits": [
+        "dragon"
+       ]
+      }
+     },
+     {
+      "key": "Resistance",
+      "predicate": [
+       "parent:spellcasting:tradition:primal",
+       "dragon-form-tradition:primal"
+      ],
+      "type": "physical",
+      "value": 5
+     },
+     {
+      "key": "Resistance",
+      "predicate": [
+       "parent:spellcasting:tradition:occult",
+       "dragon-form-tradition:occult"
+      ],
+      "type": "mental",
+      "value": 10
+     },
+     {
+      "key": "Resistance",
+      "predicate": [
+       "parent:spellcasting:tradition:arcane",
+       "dragon-form-tradition:arcane"
+      ],
+      "type": "spells",
+      "value": 5
+     },
+     {
+      "key": "Resistance",
+      "predicate": [
+       "parent:spellcasting:tradition:divine",
+       "dragon-form-tradition:divine"
+      ],
+      "type": [
+       "spirit",
+       "void",
+       "vitality"
+      ],
+      "value": 10
+     },
+     {
+      "flag": "dragonBreath",
+      "key": "GrantItem",
+      "uuid": "Compendium.pf2e.actionspf2e.Item.yMt7EeLqxzM3WLgn"
+     },
+     {
+      "itemId": "{item|flags.system.itemGrants.dragonBreath.id}",
+      "key": "ItemAlteration",
+      "mode": "override",
+      "property": "description",
+      "value": [
+       {
+        "text": "PF2E.SpecificRule.DragonForm.DragonBreath.{item|flags.system.rulesSelections.dragonForm.breathShape}.{item|flags.system.rulesSelections.dragonForm.saveType}"
+       }
+      ]
+     },
+     {
+      "itemId": "{item|flags.system.itemGrants.dragonBreath.id}",
+      "key": "ItemAlteration",
+      "mode": "add",
+      "predicate": [
+       {
+        "nor": [
+         "dragon-form:adamantine",
+         "dragon-form:brine",
+         "dragon-form:coral",
+         "dragon-form:crystal",
+         "dragon-form:forest",
+         "dragon-form:mocking",
+         "dragon-form:sea"
+        ]
+       }
+      ],
+      "property": "traits",
+      "value": "{item|flags.system.rulesSelections.dragonForm.damageType}"
+     },
+     {
+      "itemId": "{item|flags.system.itemGrants.dragonBreath.id}",
+      "key": "ItemAlteration",
+      "mode": "add",
+      "property": "traits",
+      "value": "{item|flags.system.rulesSelections.dragonForm.tradition}"
+     },
+     {
+      "key": "DamageAlteration",
+      "mode": "override",
+      "property": "damage-type",
+      "selectors": [
+       "{item|flags.system.itemGrants.dragonBreath.id}-inline-damage"
+      ],
+      "value": "{item|flags.system.rulesSelections.dragonForm.damageType}"
+     },
+     {
+      "key": "DamageAlteration",
+      "mode": "add",
+      "predicate": [
+       {
+        "gte": [
+         "parent:level",
+         8
+        ]
+       }
+      ],
+      "property": "dice-number",
+      "selectors": [
+       "{item|flags.system.itemGrants.dragonBreath.id}-inline-damage"
+      ],
+      "value": 4
+     },
+     {
+      "damageType": "{item|flags.system.rulesSelections.dragonForm.damageType}",
+      "diceNumber": 2,
+      "dieSize": "d6",
+      "key": "DamageDice",
+      "selector": "jaws-damage"
+     },
+     {
+      "key": "FlatModifier",
+      "selector": "fly-speed",
+      "type": "status",
+      "value": "match(when(gte(@item.level, 8), 20))"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Pest Form",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-pest-form",
+    "level": {
+     "value": 1
+    },
+    "rules": [
+     {
+      "brackets": [
+       {
+        "start": 4,
+        "value": {
+         "speeds": {
+          "fly": 20
+         }
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "ignoreCheckPenalty": true,
+        "ignoreSpeedReduction": true,
+        "modifier": "15 + @actor.level"
+       },
+       "senses": {
+        "low-light-vision": {},
+        "scent": {
+         "acuity": "imprecise",
+         "range": 30
+        }
+       },
+       "size": "tiny",
+       "skills": {
+        "acrobatics": {
+         "modifier": 10
+        },
+        "athletics": {
+         "modifier": -4,
+         "ownIfHigher": false
+        },
+        "stealth": {
+         "modifier": 10
+        }
+       },
+       "speeds": {
+        "land": 20
+       },
+       "traits": [
+        "animal"
+       ],
+       "weaknesses": [
+        {
+         "type": "physical",
+         "value": 5
+        }
+       ]
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Elephant Form",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-elephant-form",
+    "level": {
+     "value": 4
+    },
+    "rules": [
+     {
+      "brackets": [
+       {
+        "start": 5,
+        "value": {
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 21
+          }
+         },
+         "strikes": {
+          "foot": {
+           "damage": {
+            "dice": 4,
+            "modifier": 6
+           },
+           "modifier": 18,
+           "traits": [
+            "unarmed",
+            "reach-10"
+           ]
+          },
+          "trunk": {
+           "modifier": 18,
+           "traits": [
+            "unarmed",
+            "reach-15"
+           ]
+          },
+          "tusk": {
+           "damage": {
+            "dice": 4,
+            "modifier": 6
+           },
+           "modifier": 18,
+           "traits": [
+            "unarmed",
+            "reach-15"
+           ]
+          }
+         },
+         "tempHP": 20
+        }
+       },
+       {
+        "start": 7,
+        "value": {
+         "armorClass": {
+          "modifier": "21 + @actor.level"
+         },
+         "size": "grg",
+         "skills": {
+          "athletics": {
+           "modifier": 25
+          }
+         },
+         "strikes": {
+          "foot": {
+           "damage": {
+            "dice": 4,
+            "modifier": 15
+           },
+           "modifier": 25,
+           "traits": [
+            "unarmed",
+            "reach-15"
+           ]
+          },
+          "trunk": {
+           "modifier": 25,
+           "traits": [
+            "unarmed",
+            "reach-20"
+           ]
+          },
+          "tusk": {
+           "damage": {
+            "dice": 4,
+            "modifier": 15
+           },
+           "modifier": 25,
+           "traits": [
+            "unarmed",
+            "reach-20"
+           ]
+          }
+         },
+         "tempHP": 25
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "18 + @actor.level"
+       },
+       "senses": {
+        "lowLightVision": {},
+        "scent": {
+         "acuity": "imprecise",
+         "range": 30
+        }
+       },
+       "size": "lg",
+       "skills": {
+        "athletics": {
+         "modifier": 18
+        }
+       },
+       "speeds": {
+        "land": 40
+       },
+       "strikes": {
+        "foot": {
+         "ability": "str",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "bludgeoning",
+          "dice": 2,
+          "die": "d8",
+          "modifier": 9
+         },
+         "modifier": 16,
+         "traits": [
+          "unarmed"
+         ]
+        },
+        "trunk": {
+         "ability": "str",
+         "category": "unarmed",
+         "damage": {
+          "dice": 0
+         },
+         "modifier": 16,
+         "traits": [
+          "unarmed",
+          "reach-10"
+         ]
+        },
+        "tusk": {
+         "ability": "str",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "piercing",
+          "dice": 2,
+          "die": "d6",
+          "modifier": 9
+         },
+         "modifier": 16,
+         "traits": [
+          "unarmed",
+          "reach-10"
+         ]
+        }
+       },
+       "tempHP": 15,
+       "traits": [
+        "animal"
+       ]
+      }
+     },
+     {
+      "key": "Note",
+      "outcome": [
+       "success"
+      ],
+      "selector": "trunk-attack",
+      "text": "PF2E.BattleForm.Note.GrabbingTrunk.Text",
+      "title": "PF2E.BattleForm.Note.GrabbingTrunk.Title"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Angel Form (Monadic Deva)",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-angel-form-monadic-deva",
+    "level": {
+     "value": 7
+    },
+    "rules": [
+     {
+      "brackets": [
+       {
+        "start": 7,
+        "value": {
+         "armorClass": {
+          "modifier": "22 + @actor.level"
+         },
+         "size": "med",
+         "skills": {
+          "athletics": {
+           "modifier": 9
+          }
+         },
+         "strikes": {
+          "holy-mace": {
+           "ability": "str",
+           "baseType": "mace",
+           "category": "simple",
+           "damage": {
+            "damageType": "bludgeoning",
+            "dice": 2,
+            "die": "d6",
+            "modifier": 12
+           },
+           "group": "club",
+           "img": null,
+           "label": "PF2E.BattleForm.Attack.HolyMace",
+           "modifier": 25,
+           "traits": [
+            "shove"
+           ]
+          }
+         },
+         "tempHP": 40
+        }
+       },
+       {
+        "start": 9,
+        "value": {
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 33
+          }
+         },
+         "strikes": {
+          "holy-mace": {
+           "damage": {
+            "modifier": 20
+           },
+           "modifier": 30
+          }
+         },
+         "tempHP": 60
+        }
+       }
+      ],
+      "hasHands": true,
+      "key": "BattleForm",
+      "overrides": {
+       "senses": {
+        "darkvision": {}
+       },
+       "speeds": {
+        "fly": 40,
+        "land": 30
+       },
+       "strikes": {
+        "holy-mace": {
+         "ability": "str",
+         "baseType": "mace",
+         "category": "simple",
+         "damage": {
+          "damageType": "bludgeoning",
+          "dice": 2,
+          "die": "d6"
+         },
+         "group": "club",
+         "img": "icons/weapons/maces/mace-flanged-steel.webp",
+         "traits": [
+          "shove"
+         ]
+        }
+       },
+       "traits": [
+        "angel",
+        "empyrean"
+       ],
+       "weaknesses": [
+        {
+         "type": "unholy",
+         "value": "10+ 5*floor((@item.level -7)/2)"
+        }
+       ]
+      }
+     },
+     {
+      "damageType": "force",
+      "diceNumber": 1,
+      "dieSize": "d6",
+      "key": "DamageDice",
+      "selector": "holy-mace-damage"
+     },
+     {
+      "damageType": "spirit",
+      "diceNumber": 1,
+      "dieSize": "d6",
+      "key": "DamageDice",
+      "selector": "holy-mace-damage"
+     },
+     {
+      "key": "FlatModifier",
+      "predicate": [
+       "item:trait:death"
+      ],
+      "selector": "saving-throw",
+      "type": "status",
+      "value": 2
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Daemon Form (Ceustodaemon)",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-daemon-form-ceustodaemon",
+    "level": {
+     "value": 6
+    },
+    "rules": [
+     {
+      "hasHands": true,
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "21 + @actor.level"
+       },
+       "resistances": [
+        {
+         "type": "poison",
+         "value": 10
+        }
+       ],
+       "senses": {
+        "darkvision": {}
+       },
+       "size": "lg",
+       "skills": {
+        "athletics": {
+         "modifier": 23
+        }
+       },
+       "speeds": {
+        "land": 25
+       },
+       "strikes": {
+        "claw": {
+         "ability": "str",
+         "baseType": "claw",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "slashing",
+          "dice": 2,
+          "die": "d6"
+         },
+         "img": "icons/creatures/claws/claw-straight-brown.webp",
+         "modifier": 21,
+         "traits": [
+          "reach-10",
+          "unarmed",
+          "agile"
+         ]
+        },
+        "jaws": {
+         "ability": "str",
+         "baseType": "jaws",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "piercing",
+          "dice": 2,
+          "die": "d10",
+          "modifier": 10
+         },
+         "img": "icons/creatures/abilities/mouth-teeth-long-red.webp",
+         "modifier": 21,
+         "traits": [
+          "unarmed",
+          "reach-10"
+         ]
+        }
+       },
+       "tempHP": 15,
+       "weaknesses": [
+        {
+         "type": "holy",
+         "value": 5
+        }
+       ]
+      }
+     },
+     {
+      "key": "FlatModifier",
+      "predicate": [
+       "item:trait:death"
+      ],
+      "selector": "saving-throw",
+      "type": "status",
+      "value": 2
+     },
+     {
+      "key": "Note",
+      "selector": "strike-damage",
+      "text": "PF2E.BattleForm.DaemonForm.Note.CeustodaemonDamage",
+      "title": "{item|name}"
+     },
+     {
+      "damageType": "spirit",
+      "diceNumber": 1,
+      "dieSize": "d6",
+      "key": "DamageDice",
+      "selector": "strike-damage"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Ooze Form",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-ooze-form",
+    "level": {
+     "value": 3
+    },
+    "rules": [
+     {
+      "choices": [
+       {
+        "label": "PF2E.BattleForm.OozeForm.ChoiceSet.BlackPudding",
+        "value": "black-pudding"
+       },
+       {
+        "label": "PF2E.BattleForm.OozeForm.ChoiceSet.GelatinousCube",
+        "value": "gelatinous-cube"
+       },
+       {
+        "label": "PF2E.BattleForm.OozeForm.ChoiceSet.GrayOoze",
+        "value": "gray-ooze"
+       },
+       {
+        "label": "PF2E.BattleForm.OozeForm.ChoiceSet.OchreJelly",
+        "value": "ochre-jelly"
+       }
+      ],
+      "key": "ChoiceSet",
+      "prompt": "PF2E.SpecificRule.Prompt.Form",
+      "rollOption": "ooze-form"
+     },
+     {
+      "brackets": [
+       {
+        "start": 3,
+        "value": {
+         "size": "med",
+         "skills": {
+          "athletics": {
+           "modifier": 14
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "modifier": 5
+           },
+           "modifier": 14
+          }
+         },
+         "tempHP": 20
+        }
+       },
+       {
+        "start": 4,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 40
+          }
+         },
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 16
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "modifier": 9,
+            "traits": [
+             "unarmed",
+             "reach-10"
+            ]
+           },
+           "modifier": 16
+          }
+         },
+         "tempHP": 30
+        }
+       },
+       {
+        "start": 5,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 20
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "dice": 4,
+            "modifier": 6,
+            "traits": [
+             "unarmed",
+             "reach-15"
+            ]
+           },
+           "modifier": 18
+          }
+         },
+         "tempHP": 40
+        }
+       },
+       {
+        "start": 8,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "grg",
+         "skills": {
+          "athletics": {
+           "modifier": 29
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "dice": 4,
+            "modifier": 13,
+            "traits": [
+             "unarmed",
+             "reach-20"
+            ]
+           },
+           "modifier": 28
+          }
+         },
+         "tempHP": 60
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "7 + @actor.level"
+       },
+       "immunities": [
+        {
+         "type": [
+          "critical-hits",
+          "precision",
+          "visual"
+         ]
+        }
+       ],
+       "resistances": [
+        {
+         "type": [
+          "acid",
+          "piercing",
+          "slashing"
+         ],
+         "value": "match(when(lte(@item.level, 3), 5), when(lte(@item.level, 4), 7), when(lte(@item.level, 7), 10), 12)"
+        }
+       ],
+       "senses": {
+        "motion-sense": {
+         "acuity": "precise",
+         "range": 30
+        }
+       },
+       "speeds": {
+        "climb": 15,
+        "land": 15
+       },
+       "strikes": {
+        "pseudopod": {
+         "category": "unarmed",
+         "damage": {
+          "damageType": "bludgeoning",
+          "dice": 2,
+          "die": "d6"
+         },
+         "img": "systems/pf2e/icons/unarmed-attacks/pseudopod.webp",
+         "traits": [
+          "unarmed"
+         ]
+        }
+       },
+       "traits": [
+        "ooze"
+       ]
+      },
+      "predicate": [
+       "ooze-form:black-pudding"
+      ]
+     },
+     {
+      "damageType": "acid",
+      "diceNumber": "ternary(gte(@item.level, 5), 2, 1)",
+      "dieSize": "d8",
+      "hideIfDisabled": true,
+      "key": "DamageDice",
+      "predicate": [
+       {
+        "or": [
+         "ooze-form:black-pudding",
+         "ooze-form:ochre-jelly"
+        ]
+       }
+      ],
+      "selector": "strike-damage"
+     },
+     {
+      "brackets": [
+       {
+        "start": 3,
+        "value": {
+         "size": "med",
+         "skills": {
+          "athletics": {
+           "modifier": 14
+          }
+         },
+         "strikes": {
+          "cube-face": {
+           "damage": {
+            "modifier": 5
+           },
+           "modifier": 14
+          }
+         },
+         "tempHP": 20
+        }
+       },
+       {
+        "start": 4,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 40
+          }
+         },
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 16
+          }
+         },
+         "strikes": {
+          "cube-face": {
+           "damage": {
+            "modifier": 9,
+            "traits": [
+             "unarmed",
+             "reach-10"
+            ]
+           },
+           "modifier": 16
+          }
+         },
+         "tempHP": 30
+        }
+       },
+       {
+        "start": 5,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 20
+          }
+         },
+         "strikes": {
+          "cube-face": {
+           "damage": {
+            "dice": 2,
+            "modifier": 6,
+            "traits": [
+             "unarmed",
+             "reach-15"
+            ]
+           },
+           "modifier": 18
+          }
+         },
+         "tempHP": 40
+        }
+       },
+       {
+        "start": 8,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "grg",
+         "skills": {
+          "athletics": {
+           "modifier": 29
+          }
+         },
+         "strikes": {
+          "cube-face": {
+           "damage": {
+            "dice": 2,
+            "modifier": 13,
+            "traits": [
+             "unarmed",
+             "reach-20"
+            ]
+           },
+           "modifier": 28
+          }
+         },
+         "tempHP": 60
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "7 + @actor.level"
+       },
+       "immunities": [
+        {
+         "type": [
+          "critical-hits",
+          "precision",
+          "visual"
+         ]
+        }
+       ],
+       "resistances": [
+        {
+         "type": [
+          "acid",
+          "piercing",
+          "slashing"
+         ],
+         "value": "match(when(lte(@item.level, 3), 5), when(lte(@item.level, 4), 7), when(lte(@item.level, 7), 10), 12)"
+        }
+       ],
+       "senses": {
+        "motion-sense": {
+         "acuity": "precise",
+         "range": 30
+        }
+       },
+       "speeds": {
+        "land": 15
+       },
+       "strikes": {
+        "cube-face": {
+         "category": "unarmed",
+         "damage": {
+          "damageType": "acid",
+          "dice": 1,
+          "die": "d6"
+         },
+         "img": "systems/pf2e/icons/unarmed-attacks/cube-face.webp",
+         "traits": [
+          "unarmed"
+         ]
+        }
+       },
+       "traits": [
+        "ooze"
+       ]
+      },
+      "predicate": [
+       "ooze-form:gelatinous-cube"
+      ]
+     },
+     {
+      "key": "Note",
+      "predicate": [
+       "ooze-form:gelatinous-cube"
+      ],
+      "selector": "strike-damage",
+      "text": "PF2E.BattleForm.OozeForm.GelatinousCubeNote",
+      "title": "{item|name}"
+     },
+     {
+      "brackets": [
+       {
+        "start": 3,
+        "value": {
+         "size": "med",
+         "skills": {
+          "athletics": {
+           "modifier": 14
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "modifier": 5
+           },
+           "modifier": 14
+          }
+         },
+         "tempHP": 20
+        }
+       },
+       {
+        "start": 4,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 40
+          }
+         },
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 16
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "modifier": 9,
+            "traits": [
+             "unarmed",
+             "reach-10"
+            ]
+           },
+           "modifier": 16
+          }
+         },
+         "tempHP": 30
+        }
+       },
+       {
+        "start": 5,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 20
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "dice": 2,
+            "modifier": 6,
+            "traits": [
+             "unarmed",
+             "reach-15"
+            ]
+           },
+           "modifier": 18
+          }
+         },
+         "tempHP": 40
+        }
+       },
+       {
+        "start": 8,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "grg",
+         "skills": {
+          "athletics": {
+           "modifier": 29
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "dice": 2,
+            "modifier": 13,
+            "traits": [
+             "unarmed",
+             "reach-20"
+            ]
+           },
+           "modifier": 28
+          }
+         },
+         "tempHP": 60
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "7 + @actor.level"
+       },
+       "immunities": [
+        {
+         "type": [
+          "critical-hits",
+          "precision",
+          "visual"
+         ]
+        }
+       ],
+       "resistances": [
+        {
+         "type": [
+          "acid",
+          "piercing",
+          "slashing"
+         ],
+         "value": "match(when(lte(@item.level, 3), 5), when(lte(@item.level, 4), 7), when(lte(@item.level, 7), 10), 12)"
+        }
+       ],
+       "senses": {
+        "motion-sense": {
+         "acuity": "precise",
+         "range": 30
+        }
+       },
+       "speeds": {
+        "climb": 15,
+        "land": 15,
+        "swim": 15
+       },
+       "strikes": {
+        "pseudopod": {
+         "category": "unarmed",
+         "damage": {
+          "damageType": "bludgeoning",
+          "dice": 1,
+          "die": "d6"
+         },
+         "img": "icons/creatures/slimes/slime-movement-pseudopods-teal.webp",
+         "traits": [
+          "unarmed"
+         ]
+        }
+       },
+       "traits": [
+        "ooze"
+       ]
+      },
+      "predicate": [
+       "ooze-form:gray-ooze"
+      ]
+     },
+     {
+      "damageType": "acid",
+      "diceNumber": "ternary(gte(@item.level, 5), 2, 1)",
+      "dieSize": "d6",
+      "hideIfDisabled": true,
+      "key": "DamageDice",
+      "predicate": [
+       "ooze-form:gray-ooze"
+      ],
+      "selector": "strike-damage"
+     },
+     {
+      "key": "Note",
+      "predicate": [
+       "ooze-form:gray-ooze"
+      ],
+      "selector": "strike-damage",
+      "text": "PF2E.BattleForm.Note.Grab",
+      "title": "{item|name}"
+     },
+     {
+      "brackets": [
+       {
+        "start": 3,
+        "value": {
+         "size": "med",
+         "skills": {
+          "athletics": {
+           "modifier": 14
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "modifier": 5
+           },
+           "modifier": 14
+          }
+         },
+         "tempHP": 20
+        }
+       },
+       {
+        "start": 4,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 40
+          }
+         },
+         "size": "lg",
+         "skills": {
+          "athletics": {
+           "modifier": 16
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "modifier": 9,
+            "traits": [
+             "unarmed",
+             "reach-10"
+            ]
+           },
+           "modifier": 16
+          }
+         },
+         "tempHP": 30
+        }
+       },
+       {
+        "start": 5,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "huge",
+         "skills": {
+          "athletics": {
+           "modifier": 20
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "dice": 2,
+            "modifier": 6,
+            "traits": [
+             "unarmed",
+             "reach-15"
+            ]
+           },
+           "modifier": 18
+          }
+         },
+         "tempHP": 40
+        }
+       },
+       {
+        "start": 8,
+        "value": {
+         "senses": {
+          "motion-sense": {
+           "range": 60
+          }
+         },
+         "size": "grg",
+         "skills": {
+          "athletics": {
+           "modifier": 29
+          }
+         },
+         "strikes": {
+          "pseudopod": {
+           "damage": {
+            "dice": 2,
+            "modifier": 13,
+            "traits": [
+             "unarmed",
+             "reach-20"
+            ]
+           },
+           "modifier": 28
+          }
+         },
+         "tempHP": 60
+        }
+       }
+      ],
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "7 + @actor.level"
+       },
+       "immunities": [
+        {
+         "type": [
+          "critical-hits",
+          "precision",
+          "visual"
+         ]
+        }
+       ],
+       "resistances": [
+        {
+         "type": [
+          "acid",
+          "piercing",
+          "slashing"
+         ],
+         "value": "match(when(lte(@item.level, 3), 5), when(lte(@item.level, 4), 7), when(lte(@item.level, 7), 10), 12)"
+        },
+        {
+         "type": "electricity",
+         "value": 5
+        }
+       ],
+       "senses": {
+        "motion-sense": {
+         "acuity": "precise",
+         "range": 30
+        }
+       },
+       "speeds": {
+        "climb": 10,
+        "land": 15
+       },
+       "strikes": {
+        "pseudopod": {
+         "category": "unarmed",
+         "damage": {
+          "damageType": "bludgeoning",
+          "dice": 1,
+          "die": "d8"
+         },
+         "img": "systems/pf2e/icons/unarmed-attacks/pseudopod.webp",
+         "traits": [
+          "unarmed"
+         ]
+        }
+       },
+       "traits": [
+        "ooze"
+       ]
+      },
+      "predicate": [
+       "ooze-form:ochre-jelly"
+      ]
+     },
+     {
+      "key": "Note",
+      "predicate": [
+       "ooze-form:ochre-jelly"
+      ],
+      "selector": "strike-damage",
+      "text": "PF2E.BattleForm.Note.Grab",
+      "title": "{item|name}"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Monstrosity Form (Kaiju)",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-monstrosity-form-kaiju",
+    "level": {
+     "value": 20
+    },
+    "rules": [
+     {
+      "key": "BattleForm",
+      "overrides": {
+       "armorClass": {
+        "modifier": "22 + @actor.level"
+       },
+       "resistances": [
+        {
+         "type": "physical",
+         "value": 5
+        }
+       ],
+       "senses": {
+        "darkvision": {}
+       },
+       "size": "gargantuan",
+       "skills": {
+        "athletics": {
+         "modifier": 33
+        }
+       },
+       "speeds": {
+        "land": 40
+       },
+       "strikes": {
+        "claw": {
+         "ability": "str",
+         "baseType": "claw",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "slashing",
+          "dice": 3,
+          "die": "d8",
+          "modifier": 20
+         },
+         "modifier": 31,
+         "traits": [
+          "agile",
+          "reach-20",
+          "unarmed"
+         ]
+        },
+        "jaws": {
+         "ability": "str",
+         "category": "unarmed",
+         "damage": {
+          "damageType": "piercing",
+          "dice": 3,
+          "die": "d12",
+          "modifier": 20
+         },
+         "modifier": 31,
+         "traits": [
+          "reach-20",
+          "unarmed"
+         ]
+        }
+       },
+       "tempHP": 25
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

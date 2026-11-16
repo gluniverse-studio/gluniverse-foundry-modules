@@ -69,7 +69,9 @@
     "styles/diorama-env.css",
     "styles/diorama-props.css",
     "styles/diorama-standee.css",
-    "styles/pf2e-rail.css"
+    "styles/pf2e-rail.css",
+    "styles/level-ground.css",
+    "styles/breath-and-blood.css"
   ],
   "languages": [
     {
@@ -266,6 +268,16 @@
       "lang": "en",
       "name": "English",
       "path": "lang/pf2e-rail.en.json"
+    },
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/level-ground.en.json"
+    },
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/breath-and-blood.en.json"
     }
   ],
   "packs": [
@@ -273,6 +285,28 @@
       "name": "flatfinder",
       "label": "Flatfinder (PF2e)",
       "path": "packs/flatfinder",
+      "type": "Item",
+      "system": "pf2e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    },
+    {
+      "name": "level-ground",
+      "label": "Level Ground (PF2e)",
+      "path": "packs/level-ground",
+      "type": "Item",
+      "system": "pf2e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    },
+    {
+      "name": "breath-and-blood",
+      "label": "Breath and Blood (PF2e)",
+      "path": "packs/breath-and-blood",
       "type": "Item",
       "system": "pf2e",
       "ownership": {

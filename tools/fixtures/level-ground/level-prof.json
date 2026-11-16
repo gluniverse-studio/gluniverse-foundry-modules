@@ -1,0 +1,181 @@
+{
+ "source": "pf2e 8.7.0 feats and spell-effects packs (excerpt)",
+ "items": [
+  {
+   "name": "Untrained Improvisation",
+   "type": "feat",
+   "system": {
+    "slug": "untrained-improvisation",
+    "level": {
+     "value": 3
+    },
+    "rules": [
+     {
+      "key": "FlatModifier",
+      "selector": "skill-check",
+      "type": "proficiency",
+      "value": "@actor.level + clamp(-2,floor((@actor.level - 7) / 2),0)"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Eclectic Skill",
+   "type": "feat",
+   "system": {
+    "slug": "eclectic-skill",
+    "level": {
+     "value": 8
+    },
+    "rules": [
+     {
+      "hideIfDisabled": true,
+      "key": "FlatModifier",
+      "predicate": [
+       "proficiency:untrained"
+      ],
+      "selector": "skill-check",
+      "type": "proficiency",
+      "value": "@actor.level"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Martial Experience",
+   "type": "feat",
+   "system": {
+    "slug": "martial-experience",
+    "level": {
+     "value": 5
+    },
+    "rules": [
+     {
+      "hideIfDisabled": true,
+      "key": "FlatModifier",
+      "predicate": [
+       {
+        "lte": [
+         "self:level",
+         10
+        ]
+       }
+      ],
+      "selector": "strike-attack-roll",
+      "type": "proficiency",
+      "value": "@actor.level"
+     },
+     {
+      "key": "ActiveEffectLike",
+      "mode": "upgrade",
+      "path": "system.proficiencies.attacks.unarmed.rank",
+      "phase": "beforeDerived",
+      "predicate": [
+       {
+        "gte": [
+         "self:level",
+         11
+        ]
+       }
+      ],
+      "value": 1
+     },
+     {
+      "key": "ActiveEffectLike",
+      "mode": "upgrade",
+      "path": "system.proficiencies.attacks.simple.rank",
+      "phase": "beforeDerived",
+      "predicate": [
+       {
+        "gte": [
+         "self:level",
+         11
+        ]
+       }
+      ],
+      "value": 1
+     },
+     {
+      "key": "ActiveEffectLike",
+      "mode": "upgrade",
+      "path": "system.proficiencies.attacks.martial.rank",
+      "phase": "beforeDerived",
+      "predicate": [
+       {
+        "gte": [
+         "self:level",
+         11
+        ]
+       }
+      ],
+      "value": 1
+     },
+     {
+      "key": "ActiveEffectLike",
+      "mode": "upgrade",
+      "path": "system.proficiencies.attacks.advanced.rank",
+      "phase": "beforeDerived",
+      "predicate": [
+       {
+        "gte": [
+         "self:level",
+         11
+        ]
+       }
+      ],
+      "value": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "Pathfinder Agent Dedication",
+   "type": "feat",
+   "system": {
+    "slug": "pathfinder-agent-dedication",
+    "level": {
+     "value": 2
+    },
+    "rules": [
+     {
+      "key": "FlatModifier",
+      "selector": "skill-check",
+      "type": "proficiency",
+      "value": "@actor.level"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Spell Effect: Honeyed Words",
+   "type": "effect",
+   "system": {
+    "slug": "spell-effect-honeyed-words",
+    "level": {
+     "value": 4
+    },
+    "rules": [
+     {
+      "key": "FlatModifier",
+      "predicate": [
+       "action:lie"
+      ],
+      "selector": "deception",
+      "type": "status",
+      "value": 4
+     },
+     {
+      "key": "FlatModifier",
+      "predicate": [
+       "action:lie"
+      ],
+      "selector": "deception",
+      "slug": "honeyed-words-proficiency",
+      "type": "proficiency",
+      "value": "@actor.level"
+     }
+    ]
+   }
+  }
+ ]
+}
