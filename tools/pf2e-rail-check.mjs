@@ -848,6 +848,7 @@ section("a skill's key, rested on, offers that skill's actions", () => {
   ok(ath.actions.some((a) => a.variants) && /data-variant="2"/.test(fly), "an attack-trait action keeps its three MAP steps in the fly");
   ok(!/role="option"|data-k=|aria-selected/.test(fly), "the fly's keys are not the finder's options: the finder's arrow keys never count them");
   ok(/data-fly="skill:athletics"/.test(fly) && /class="gph-peek gph-fly"/.test(fly), "the fly is a peek (it closes, sinks and takes presses as one) and names its skill");
+  ok(/class="gph-peek gph-fly"[^>]*data-tooltip-direction="LEFT"/.test(fly), "a row's tooltip opens beside the fly, never over the rows above it");
   ok(/gph-flynone/.test(V.SKILLFLY({ ...ath, actions: [] }, t)), "a skill with no action says so instead of rising empty");
   const key = V.SKILLTAB({ checks, suggested: [] }, t).match(/<button[^>]*class="gph-ck"[^>]*>/)[0];
   ok(!/title=/.test(key) && /aria-label=/.test(key), "a key that flies carries no tooltip under the fly, and still says its name");

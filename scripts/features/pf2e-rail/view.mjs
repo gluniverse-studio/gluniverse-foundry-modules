@@ -524,9 +524,11 @@ const CHIP = (a, t, sel, k, { query = "", option = true } = {}) => {
 /* The fly: a skill's actions, risen over its key on the rail while the
    pointer rests there. It is that skill's row of the sheet (the same keys,
    the same presses), so nothing here is a second way to roll anything. The
-   key under it stays the plain check. */
+   key under it stays the plain check. A row's tooltip opens to the left
+   (Foundry reads the direction off the nearest ancestor): above, it would
+   lie over the rows the pointer goes to next. */
 export const SKILLFLY = (r, t) => `
-<div class="gph-peek gph-fly" data-fly="${esc(r.check)}" role="group" aria-label="${esc(t("GLRAIL.skill.flyLabel", { name: r.name }))}">
+<div class="gph-peek gph-fly" data-fly="${esc(r.check)}" data-tooltip-direction="LEFT" role="group" aria-label="${esc(t("GLRAIL.skill.flyLabel", { name: r.name }))}">
   <header class="gph-flyh">${skillName(r, t)}<span>${esc(t(`GLRAIL.prof.${r.rank ?? 0}`))}</span><em>${sign(r.mod)}</em></header>
   ${r.actions.length ? `<div class="gph-flyacts">${r.actions.map((a) => CHIP(a, t, false, 0, { option: false })).join("")}</div>` : `<p class="gph-flynone">${esc(t("GLRAIL.skill.flyNone"))}</p>`}
 </div>`;
