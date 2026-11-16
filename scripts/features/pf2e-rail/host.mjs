@@ -34,7 +34,9 @@ import * as D from "./drive.mjs";
 import * as S from "./shape.mjs";
 import { diceSettled } from "../../core/dice-wait.mjs";
 import * as K from "./skill-actions.mjs";
-import { EXPLORE_PACK, STANDARD_EXPLORATION, STD_EXPLORE, TIMING } from "./const.mjs";
+import { EXPLORE_PACK, FEATURE_ID, SAVES, STANDARD_EXPLORATION, STD_EXPLORE, TIMING } from "./const.mjs";
+import { CALL_LIFE, answersCall, callModel, dcOf, makeCall, partyChecks, readCall, statisticOf } from "./calls.mjs";
+import { emitSocket, onSocket } from "../../core/socket.mjs";
 import { RailLight } from "./light.mjs";
 import { momentsOf, playMoments } from "./moments.mjs";
 import { costOf, readGM, readPlayer, SKILLS, withSkills } from "./read.mjs";
@@ -63,6 +65,20 @@ const skipDefeated = () => { try { return !!game.settings.get("core", "combatTra
 const isReroll = (m) => !!(m?.flags?.pf2e?.context?.isReroll || m?.rolls?.[0]?.options?.isReroll);
 const safe = async (fn) => { try { return await fn(); } catch { return null; } };
 const range = (r) => (r && Number.isFinite(r.lo) && Number.isFinite(r.hi) ? (r.lo === r.hi ? r.lo : { lo: r.lo, hi: r.hi }) : null);
+/** A check's name as PF2e prints it: Perception, a save, a skill. */
+const checkName = (check) => {
+  if (check === "perception") return loc("PF2E.PerceptionLabel");
+  if (SAVES.includes(check)) return loc(CONFIG.PF2E.saves?.[check]) || check;
+  const slug = String(check).slice(6);
+  return loc(CONFIG.PF2E.skills?.[slug]?.label) || slug;
+};
+/** What PF2e's skill action is handed for a MAP step: the step itself (it
+ *  applies −5 a step), or, where a rule lowered this skill's penalty, the
+ *  penalty as a negative number, which PF2e applies unchanged. */
+const mapArg = (step, per) => (per == null || per === 5 || !step ? step : -per * step);
+/** A drawer the GM works from while picking tokens: it stays open through a
+ *  press on the canvas and a change of subject. */
+const STAYS = new Set(["statblock", "party"]);
 const WORDS = () => [0, 1, 2, 3].map((i) => t(`GLRAIL.degree.${i}`));
 /* The cards that peek while the pointer rests on them, and the peeks that
    close when it leaves. */
@@ -92,6 +108,9 @@ export class RailHost {
     this.open = { drawer: null };
     this.peek = null;
     this.fs = { open: false, query: "", sel: 0, settled: false };
+    /* a check the GM calls for (calls.mjs): the GM's DC and the call that is
+       out, or on a player's client the call that came in. Never stored. */
+    this.calls = { dc: "", showDc: false, out: null, in: null, timer: null };
     this.pending = null;
     /* the press the last roll echoed on: a Hero Point spent on its reroll streaks there */
     this.lastEcho = null;
@@ -171,7 +190,8 @@ export class RailHost {
       "targetToken", "controlToken", "createToken", "deleteToken", "canvasReady"]) this.on(h, () => this.schedule());
     this.on("updateToken", (doc, change) => { if (["name", "disposition", "hidden", "actorId", "ring", "texture", "x", "y"].some((k) => k in (change ?? {}))) this.schedule(); });
     this.on("updateUser", (user, change) => { if (user.id === game.user.id && ("character" in change || "flags" in change)) this.schedule(); });
-    this.on("createChatMessage", (m) => this.onMessage(m));
+    this.on("createChatMessage", (m) => { this.onAnswer(m); this.onMessage(m); });
+    onSocket(FEATURE_ID, (payload, _claimed, meta) => this.onCall(payload, meta?.attested ?? null));
     this.on("pf2eRangedCombatReload", (actor, weapon) => this.onReloaded(actor, weapon));
     this.on("renderHotbar", () => { this.dock(); if (this.open.drawer === "macros" && this.model) this.render(); });
     this.on("renderPlayers", () => this.dock());
@@ -385,7 +405,7 @@ export class RailHost {
       this.fs = { ...this.fs, open: false };
       /* The GM's stat block stays open from creature to creature: reading
          one after another is what it is for. */
-      if (!(this.open.drawer === "statblock" && model.creature)) this.open.drawer = null;
+      if (!(this.open.drawer === "party" || (this.open.drawer === "statblock" && model.creature))) this.open.drawer = null;
       this.peek = null;
       this.model = model;
       this.render({ arrive: true });
@@ -417,6 +437,8 @@ export class RailHost {
     const m = this.model;
     const o = { ...m, ...(m.util ? { util: { ...m.util, open: this.open.drawer } } : {}) };
     if (o.deck && m.sk) o.deck = withSkills(o.deck, m.sk, { mode: m.mode ?? "encounter", map: m.turnbar?.map ?? 0, t });
+    const call = this.subj?.role !== "gm" && this.subj?.actor?.isOwner ? callModel(this.calls.in, this.subj.actor, { name: checkName, now: Date.now() }) : null;
+    if (call) o.call = call;
     if (this.fs.open && m.sk) o.overlay = V.FINDER(this.finder(), t);
     else if (this.open.drawer) { const d = this.drawer(this.open.drawer); if (d) o.overlay = V.DRAWER(d); }
     return o;
@@ -482,6 +504,12 @@ export class RailHost {
       return { title: t("GLRAIL.drawer.macros"), body: V.MACROS({ page, slots: macroSlots(game.user.getHotbarMacros(page)) }, t) };
     }
     if (kind === "ranks" && m.deck?.spells) return { title: t("GLRAIL.spell.hand"), note: m.deck.spells.dc != null ? `${t("GLRAIL.skill.dcShort", { dc: m.deck.spells.dc })}` : "", body: V.RANKS(m.deck.spells, t) };
+    if (kind === "party") {
+      if (!game.user.isGM) return null;
+      const out = this.calls.out;
+      return { title: t("GLRAIL.call.open"), wide: true, body: V.PARTYCHECKS(partyChecks(this.partyOf(null, null), { name: checkName }), t,
+        { dc: this.calls.dc, showDc: this.calls.showDc, call: out ? { check: out.check, name: checkName(out.check), answered: [...out.answered] } : null }) };
+    }
     if (kind === "statblock") return m.creature ? { title: m.creature.name, note: t("GLRAIL.drawer.statblock"), wide: true, body: V.STATBLOCK(m.creature, t) } : null;
     if (kind === "foes") return { title: t("GLRAIL.drawer.foes"), note: String(m.foes?.foes?.length ?? 0), body: V.DLIST({ rows: (m.foes?.foes ?? []).map((f) => ({ key: `foe:${f.id}`, act: true, name: f.name, icon: f.img, meta: `${t("GLRAIL.gm.level", { n: f.level })} · ${t(`GLRAIL.disp.${f.disp}`)}`, n: f.hp ? `${f.hp[0]}/${f.hp[1]}` : null })) }, t) };
     if (!actor) return null;
@@ -722,6 +750,11 @@ export class RailHost {
       if (d.act === "fold") { await game.settings.set(SUITE_ID, SETTINGS.folded, !m.folded); return; }
       if (d.act === "close") { if (this.fs.open) this.closeFinder(); else { this.open.drawer = null; this.render(); } return; }
       if (d.act === "frame") return this.frame();
+      if (d.act === "call-end") return this.endCall();
+      if (d.act === "call-dismiss") { this.calls.in = null; return this.render(); }
+      if (d.call) return this.sendCall(d.call);
+      if (d.pcheck) return this.secretCheck(d.pcheck, d.actor);
+      if (d.answer) { const c = this.calls.in; this.calls.in = null; const roll = this.check(d.check, e, c?.id === d.answer ? c.dc : null); this.render(); return roll; }
       if (d.act === "hp") return this.editHp(b);
       if (d.hero) { const n = +d.hero, cur = m.plinth.hero?.[0] ?? 0; return actor.update({ "system.resources.heroPoints.value": cur === n ? n - 1 : n }); }
       if (d.pip != null) { const turn = this.turnOf(actor), tb = m.turnbar; turn.pip(d.pip, tb.economy.max); return this.update({ ...m, turnbar: { ...tb, economy: turn.economy(tb.economy) } }); }
@@ -761,11 +794,69 @@ export class RailHost {
     }
   }
 
-  async check(key, event) {
-    const actor = this.subj?.actor;
-    if (key === "perception") return actor.perception?.roll({ event });
-    if (actor.saves?.[key]) return actor.saves[key].roll({ event });
-    if (key.startsWith("skill:")) return actor.skills?.[key.slice(6)]?.roll({ event });
+  /** `dc` is a called check's, where the GM showed it. */
+  async check(key, event, dc = null) {
+    return statisticOf(this.subj?.actor, key)?.roll({ event, ...(dc != null ? { dc: { value: dc, visible: true } } : {}) });
+  }
+
+  /* ── a check the GM calls for (calls.mjs) ───────────────────── */
+
+  /** The GM calls for a check: every connected player gets one press. The
+   *  server delivers it to them alone; the stream login is never one. */
+  sendCall(check) {
+    if (!game.user.isGM) return;
+    const users = game.users.filter((u) => u.active && !u.isGM).map((u) => u.id);
+    if (!users.length) return ui.notifications?.info?.(t("GLRAIL.call.nobody"));
+    const call = makeCall({ check, dc: this.calls.dc, showDc: this.calls.showDc, id: foundry.utils.randomID(), at: Date.now() });
+    if (!call) return;
+    if (this.calls.out) emitSocket(FEATURE_ID, { type: "end", id: this.calls.out.id }, { recipients: users });
+    emitSocket(FEATURE_ID, call, { recipients: users });
+    clearTimeout(this.calls.timer);
+    this.calls.out = { ...call, answered: new Set() };
+    this.calls.timer = setTimeout(() => { this.calls.out = null; if (this.model) this.render(); }, CALL_LIFE);
+    this.render();
+  }
+
+  endCall() {
+    const out = this.calls.out;
+    if (!out || !game.user.isGM) return;
+    emitSocket(FEATURE_ID, { type: "end", id: out.id }, { recipients: game.users.filter((u) => u.active && !u.isGM).map((u) => u.id) });
+    clearTimeout(this.calls.timer);
+    this.calls.out = null;
+    this.render();
+  }
+
+  /** A call arrives. It is honoured only from a sender the SERVER names and
+   *  who is a GM; the payload's own word for its sender is never read. */
+  onCall(payload, attested) {
+    if (game.user.isGM || this.stream) return;
+    const call = readCall(payload, { fromGM: !!(attested && game.users.get(attested)?.isGM), now: Date.now() });
+    if (!call) return;
+    clearTimeout(this.calls.timer);
+    if (call.end) { if (this.calls.in?.id !== call.end) return; this.calls.in = null; }
+    else {
+      this.calls.in = call;
+      this.calls.timer = setTimeout(() => { this.calls.in = null; if (this.model) this.render(); }, CALL_LIFE);
+    }
+    if (this.model) this.render();
+  }
+
+  /** On the GM's screen: who has rolled the check that was called for. */
+  onAnswer(message) {
+    const out = this.calls.out;
+    if (!out || !game.user.isGM) return;
+    const actorId = message.actor?.id ?? message.speaker?.actor ?? null;
+    if (!answersCall(out, { actorId, ctx: message.flags?.pf2e?.context, at: Date.now() }) || out.answered.has(actorId)) return;
+    out.answered.add(actorId);
+    if (this.open.drawer === "party") this.render();
+  }
+
+  /** The GM rolls a character's check for them, and nobody else sees it:
+   *  PF2e's own GM-only message mode, with no event to turn it public. */
+  async secretCheck(check, actorId) {
+    if (!game.user.isGM) return;
+    const dc = dcOf(this.calls.dc);
+    return statisticOf(game.actors.get(actorId), check)?.roll({ messageMode: "gm", ...(dc != null ? { dc: { value: dc } } : {}) });
   }
 
   async strike(id, what, variant, event) {
@@ -807,7 +898,7 @@ export class RailHost {
         button, { kind: "variant", id: a.id, stat, anchor: `[data-skill-action="${CSS.escape(a.id)}"]${stat ? `[data-stat="${CSS.escape(stat)}"]` : ""}` });
     }
     const ctx = this.spendCtx();
-    if (action) await action.use({ actors: [actor], statistic: a.skill.slug, event, ...(kind ? { variant: kind } : {}), ...(a.attack ? { multipleAttackPenalty: map } : {}) });
+    if (action) await action.use({ actors: [actor], statistic: a.skill.slug, event, ...(kind ? { variant: kind } : {}), ...(a.attack ? { multipleAttackPenalty: mapArg(map, a.mapStep) } : {}) });
     else {
       const legacy = game.pf2e.actions[camel(a.slug)];
       if (typeof legacy !== "function") { warn(`PF2e HUD | PF2e has no action "${a.slug}"`); return; }
@@ -911,7 +1002,7 @@ export class RailHost {
   }
 
   controlToken(id) {
-    if (this.open.drawer !== "statblock") this.open.drawer = null;
+    if (!STAYS.has(this.open.drawer)) this.open.drawer = null;
     return this.pick(canvas?.tokens?.get(id));
   }
 
@@ -980,6 +1071,9 @@ export class RailHost {
   /* ── pointer and keys ───────────────────────────────────────── */
 
   onInput(e) {
+    /* the GM's DC and whether players see it: kept, never redrawn under the caret */
+    if (e.target.matches?.("[data-call-dc]")) { this.calls.dc = e.target.value; return; }
+    if (e.target.matches?.("[data-call-show]")) { this.calls.showDc = !!e.target.checked; return; }
     const inp = e.target.closest("[data-find]");
     if (!inp) return;
     if (!this.fs.open) return this.openFinder(inp.value);
@@ -1032,7 +1126,7 @@ export class RailHost {
     if (e.target?.closest?.("#gph-host :is(.gph-rail, .gph-stack, .gph-drawer, .gph-peek, .gph-finder)")) return;
     this.closePeek();
     /* The stat block is read while the GM picks creatures on the canvas. */
-    if (this.open.drawer && this.open.drawer !== "statblock") { this.open.drawer = null; this.render(); }
+    if (this.open.drawer && !STAYS.has(this.open.drawer)) { this.open.drawer = null; this.render(); }
   }
 
   onKey(e) {

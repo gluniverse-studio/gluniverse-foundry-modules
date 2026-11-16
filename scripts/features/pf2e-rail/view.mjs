@@ -480,8 +480,10 @@ export const UTIL = (u, t) => `
      it cannot be taken.
 
    Typing narrows the rows: a skill's name keeps its whole row (and Enter
-   rolls the check), an action's name keeps that action. A pin keeps an
-   action among the rail's keys. */
+   rolls the check), an action's name keeps that action. A pinned action
+   also stands in a row of its own above Perception, rolled with the
+   character's best skill for it, so what a player reaches for every turn
+   is the first thing on the sheet. */
 const oddsTone = (c) => {
   if (c == null) return "";
   const [lo, hi] = Array.isArray(c) ? c : [c, c];
@@ -504,7 +506,7 @@ const CHIP = (a, t, sel, k, { query = "" } = {}) => {
   const chance = a.vs?.chance ?? null;
   const known = a.vs && a.vs.dc != null;
   /* rolled with a statistic that is not this row's (Unarmed for Escape) */
-  const other = a.stat && a.skill.slug !== a.stat;
+  const other = a.stat ? a.skill.slug !== a.stat : !!a.best;
   const said = esc([a.name, a.cost != null ? t(costKey(a.cost), { cost: a.cost }) : "", `${a.skill.name} ${sign(a.mapMod ?? a.skill.mod)}`,
     a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}${known ? "" : " ??"}` : "", chance != null ? pctOf(chance) : "", a.secret ? t("GLRAIL.skill.secret") : ""].filter(Boolean).join(", "));
   const title = esc([a.variants ? t("GLRAIL.skill.atMap", { name: a.name }) : a.name, a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}${a.vs.dc != null ? ` (DC ${a.vs.dc})` : ""}` : a.note ?? "", a.secret ? t("GLRAIL.skill.secretTitle") : ""].filter(Boolean).join(" · "));
@@ -539,13 +541,13 @@ export const FINDER = (f, t) => {
   const rows = f.rows.map((r, ri) => {
     /* found by one of its actions only: the check stays a press, and the
        keys start on what was typed for */
-    const ki = r.aside ? null : k++;
+    const ki = r.aside || r.pinned ? null : k++;
     if (ki != null && ki === sel) picked = { row: r };
-    const head = `<button type="button" class="gph-fk${ki != null && ki === sel ? " is-sel" : ""}" data-check="${esc(r.check)}" data-rank="${r.rank ?? 0}"${ki != null ? ` data-k="${ki}" role="option" aria-selected="${ki === sel}"` : ""} title="${esc(t("GLRAIL.check.roll", { name: r.name }))}" aria-label="${esc(`${r.name}, ${t(`GLRAIL.prof.${r.rank ?? 0}`)}, ${sign(r.mod)}`)}">
+    const head = r.pinned ? `<span class="gph-fk is-pins">${ICON.pin}<span class="gph-skn">${esc(r.name)}</span></span>` : `<button type="button" class="gph-fk${ki != null && ki === sel ? " is-sel" : ""}" data-check="${esc(r.check)}" data-rank="${r.rank ?? 0}"${ki != null ? ` data-k="${ki}" role="option" aria-selected="${ki === sel}"` : ""} title="${esc(t("GLRAIL.check.roll", { name: r.name }))}" aria-label="${esc(`${r.name}, ${t(`GLRAIL.prof.${r.rank ?? 0}`)}, ${sign(r.mod)}`)}">
           ${skillName(r, t, r.aside ? "" : f.query)}${RANK_TAG(r.rank ?? 0, t)}<em>${sign(r.mod)}</em></button>`;
     const chips = r.actions.map((a) => { const i = k++; if (i === sel) picked = { action: a }; return CHIP(a, t, i === sel, i, { query: f.query }); }).join("");
     return `
-      <section class="gph-skrow${(r.rank ?? 0) > 0 ? "" : " is-untrained"}" aria-label="${esc(r.name)}" style="--c:${ri}">
+      <section class="gph-skrow${r.pinned ? " is-pins" : (r.rank ?? 0) > 0 ? "" : " is-untrained"}" aria-label="${esc(r.name)}" style="--c:${ri}">
         ${head}<div class="gph-sacts">${chips}</div>
       </section>`;
   }).join("");
@@ -649,12 +651,54 @@ export const SEAT = (s, t) => {
     <span class="gph-fig"><span class="gph-img"${art ? ` style="background-image:url('${esc(art)}')"` : ""}></span></span>
   </span>${s.hp ? '<span class="gph-sbar"><i class="gph-sbar-hp"></i><i class="gph-sbar-tmp"></i></span>' : ""}</span>
   <span class="gph-sid">
-    <span class="gph-skrow"><b class="gph-sname">${esc(s.name)}</b>${s.hero ? `<span class="gph-shero" aria-hidden="true">${Array.from({ length: s.hero[1] }, (_, i) => `<i class="${i < s.hero[0] ? "on" : ""}"></i>`).join("")}</span>` : ""}</span>
+    <span class="gph-srow"><b class="gph-sname">${esc(s.name)}</b>${s.hero ? `<span class="gph-shero" aria-hidden="true">${Array.from({ length: s.hero[1] }, (_, i) => `<i class="${i < s.hero[0] ? "on" : ""}"></i>`).join("")}</span>` : ""}</span>
     <span class="gph-ssub">${s.ac != null ? `<span class="gph-sac">${esc(t("GLRAIL.vitals.ac"))} <b>${s.ac}</b></span>` : ""}${s.note ? `<span class="gph-snote">${esc(s.note)}</span>` : s.hp ? `<span class="gph-shp"><b data-v>${s.hp[0]}</b>/${s.hp[1]}</span>` : ""}</span>
     ${s.explore ? `<span class="gph-sexp" title="${esc(s.explore)}">${esc(s.explore)}</span>` : ""}
   </span>
 </div>`;
 };
+
+/* ── the party's checks, and a call ───────────────────────────────
+   The GM's grid (calls.mjs): a row per check, a column per character, the
+   best in a row marked. Two presses, and the row says which is which:
+
+   - a NUMBER rolls that character's check for the GM alone, blind to the
+     table (a secret Perception, a Stealth nobody may know the result of);
+   - a NAME calls for the check: every player gets one press on their rail.
+     The DC field is the GM's; it leaves the screen only when "show" is on.
+
+   While a call stands, its row is lit and each cell says who has rolled. */
+export const PARTYCHECKS = (p, t, { dc = "", showDc = false, call = null } = {}) => {
+  if (!p?.members?.length) return `<p class="gph-dnone">${esc(t("GLRAIL.call.noParty"))}</p>`;
+  const got = new Set(call?.answered ?? []);
+  return `
+<div class="gph-pc" data-party>
+  <div class="gph-pc-bar">
+    <label class="gph-pc-dc"><span>${esc(t("GLRAIL.call.dc"))}</span><input type="number" data-call-dc inputmode="numeric" min="0" max="60" step="1" value="${esc(dc ?? "")}" placeholder="${esc(t("GLRAIL.call.dcNone"))}" aria-label="${esc(t("GLRAIL.call.dcSaid"))}"></label>
+    <label class="gph-pc-show"><input type="checkbox" data-call-show${showDc ? " checked" : ""}><span>${esc(t("GLRAIL.call.show"))}</span></label>
+    ${call ? `<span class="gph-pc-live" aria-live="polite">${ICON.call}<b>${esc(t("GLRAIL.call.live", { name: call.name }))}</b><em>${esc(t("GLRAIL.call.count", { n: got.size, of: p.members.length }))}</em></span><button type="button" class="gph-pc-end" data-act="call-end">${esc(t("GLRAIL.call.end"))}</button>`
+      : `<span class="gph-pc-hint">${esc(t("GLRAIL.call.hint"))}</span>`}
+  </div>
+  <table class="gph-pct">
+    <thead><tr><th scope="col"><span class="gph-sr">${esc(t("GLRAIL.group.checks"))}</span></th>${p.members.map((m) => `<th scope="col" title="${esc(m.name)}">${m.img ? `<img src="${esc(m.img)}" alt="">` : ""}<span>${esc(m.name)}</span></th>`).join("")}</tr></thead>
+    <tbody>${p.rows.map((r, i) => `
+      <tr data-group="${r.group}"${call?.check === r.check ? ' class="is-called"' : ""}${i && p.rows[i - 1].group !== r.group ? " data-first" : ""}>
+        <th scope="row"><button type="button" class="gph-pc-call" data-call="${esc(r.check)}" title="${esc(t("GLRAIL.call.callFor", { name: r.name }))}">${ICON.call}<span>${esc(r.name)}</span></button></th>
+        ${r.cells.map((c, ci) => `<td>${c.mod == null ? "" : `<button type="button" class="gph-pc-cell${c.best ? " is-best" : ""}${call?.check === r.check && got.has(c.id) ? " is-in" : ""}" data-pcheck="${esc(r.check)}" data-actor="${esc(c.id)}" data-rank="${c.rank}" title="${esc(t("GLRAIL.call.secretFor", { name: r.name, who: p.members[ci].name }))}" aria-label="${esc(`${p.members[ci].name}, ${r.name} ${sign(c.mod)}`)}">${sign(c.mod)}</button>`}</td>`).join("")}
+      </tr>`).join("")}
+    </tbody>
+  </table>
+</div>`;
+};
+
+/* A call on a player's rail: one press, the check named whole, the
+   character's own modifier, the DC only where the GM showed it. */
+export const CALLBAR = (c, t) => `
+<div class="gph-call" role="alert" data-call-id="${esc(c.id)}">
+  <span class="gph-call-k">${ICON.call}${esc(t("GLRAIL.call.asks"))}</span>
+  <button type="button" class="gph-call-roll" data-check="${esc(c.check)}" data-answer="${esc(c.id)}" title="${esc(t("GLRAIL.check.roll", { name: c.name }))}"><b>${esc(c.name)}</b><em>${sign(c.mod)}</em>${c.dc != null ? `<i>${esc(t("GLRAIL.skill.dcShort", { dc: c.dc }))}</i>` : ""}</button>
+  <button type="button" class="gph-x" data-act="call-dismiss" aria-label="${esc(t("GLRAIL.call.dismiss"))}" title="${esc(t("GLRAIL.call.dismiss"))}">${ICON.close}</button>
+</div>`;
 
 /* ── the GM's creature panel ──────────────────────────────────────
    AC leads, as on the player's vitals. Then the Hit Points the GM marks,
@@ -698,7 +742,8 @@ export const STATBLOCK = (n, t) => {
   const s = n.stat ?? {};
   const line = (k, v, tone = "") => (v ? `<div class="gph-sl"${tone ? ` data-iwr="${tone}"` : ""}><dt>${esc(t(`GLRAIL.stat.${k}`))}</dt><dd>${esc(v)}</dd></div>` : "");
   const of = (k) => (s.iwr ?? []).filter((x) => x.k === k).map((x) => x.text).join(", ");
-  const lines = [line("immune", of("immune"), "immune"), line("weak", of("weak"), "weak"), line("resist", of("resist"), "resist"),
+  const skills = (s.skills ?? []).length ? `<div class="gph-sl"><dt>${esc(t("GLRAIL.stat.skills"))}</dt><dd class="gph-sks">${s.skills.map((k) => `<button type="button" class="gph-sk" data-check="${esc(k.check)}" title="${esc(t("GLRAIL.check.roll", { name: k.name }))}"><span>${esc(k.name)}</span><b>${sign(k.mod)}</b></button>`).join("")}</dd></div>` : "";
+  const lines = [skills, line("immune", of("immune"), "immune"), line("weak", of("weak"), "weak"), line("resist", of("resist"), "resist"),
     line("senses", (s.senses ?? []).join(", ")), line("speeds", (s.speeds ?? []).join(", ")), line("languages", (s.languages ?? []).join(", "))].join("");
   return `
 <div class="gph-statblock">
@@ -824,10 +869,10 @@ export const RAIL = (o, t) => {
     : VITALS(o.vitals, t) + STRIKES(o.strikes ?? { list: [] }, t) + DECK(o.deck, t) + (o.slim ? "" : UTIL(o.util, t));
   return `
 <div class="gph" data-role="${o.role}" data-mode="${o.mode ?? "exploration"}" data-map="${o.turnbar?.map ?? 0}"${o.slim ? " data-slim" : ""}${o.folded ? " data-folded" : ""}${o.readonly ? " data-readonly" : ""}${o.role !== "gm" && (o.plinth?.dead || o.plinth?.dying) ? ` data-down="${o.plinth.dead ? "dead" : "dying"}"` : ""}${o.overlay ? " data-overlay" : ""}>
-  ${o.stack?.length ? `<div class="gph-stack" role="group" aria-label="${esc(t("GLRAIL.party"))}">${o.stack.map((s) => SEAT(s, t)).join("")}</div>` : ""}
+  ${o.stack?.length ? `<div class="gph-stack" role="group" aria-label="${esc(t("GLRAIL.party"))}">${o.stack.map((s) => SEAT(s, t)).join("")}${o.role === "gm" ? `<button type="button" class="gph-pcb" data-drawer="party" title="${esc(t("GLRAIL.call.openTitle"))}">${ICON.party}<span>${esc(t("GLRAIL.call.open"))}</span></button>` : ""}</div>` : ""}
   <div class="gph-rail">
     ${PLINTH({ ...o.plinth, folded: o.folded }, t, { readonly: o.readonly })}
-    <div class="gph-body">${o.turnbar && o.role !== "gm" ? TURNBAR(o.turnbar, t) : ""}${o.role === "gm" && o.creature ? STATBAR(o.creature, t) : ""}${body}</div>
+    <div class="gph-body">${o.turnbar && o.role !== "gm" ? TURNBAR(o.turnbar, t) : ""}${o.call && o.role !== "gm" ? CALLBAR(o.call, t) : ""}${o.role === "gm" && o.creature ? STATBAR(o.creature, t) : ""}${body}</div>
   </div>
   ${o.overlay ?? ""}
   ${o.peek ?? ""}

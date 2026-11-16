@@ -1922,6 +1922,14 @@ consumables, so an item tile needs the `consumable` trait; a hazard's Disable
 text is inline syntax (`inlineText`). And a background tab starves
 `requestAnimationFrame`, so the refresh carries a timer fallback.
 
+**A call is the GM's sentence, never data** (`calls.mjs`, pure). The GM's Party
+checks grid rolls a character's check in secret (`messageMode: "gm"`, no
+event) or calls for one: a message on the suite socket to the connected
+players, drawn as one press on each rail. It is honoured only when the
+server-attested sender is a GM, `readCall` is total, a hidden DC never leaves
+the GM's client, and nothing is stored. Every skill must stay one press on a
+900p screen: a narrow deck's checks rise as a block, never scroll or abbreviate.
+
 **The lang file dies whole.** Foundry expands each language file with
 `expandObject`, and a key that is also the head of another (`GLRAIL.deck` beside
 `GLRAIL.deck.label`) throws and drops *every* key in it; the check refuses

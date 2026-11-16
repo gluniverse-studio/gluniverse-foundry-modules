@@ -363,11 +363,40 @@ export function itemTiles(actor) {
 
 /* ── skills, for the finder ─────────────────────────────────────── */
 
+/**
+ * How much each further attack costs a skill's attack-trait actions (Trip,
+ * Grapple): 5 by the book. PF2e's own skill actions apply a flat −5/−10 and
+ * consult nothing (`SingleCheckActionVariant#use`), so a rule that lowers it
+ * for a skill is honoured here or nowhere: a MultipleAttackPenalty rule
+ * element whose selector is one of the statistic's own domains and whose
+ * predicate holds. The mildest wins, as in PF2e's `calculateMAPs`. Rules
+ * written for Strikes (selector "attack") are not read: a skill check is not
+ * in that domain, in PF2e or here.
+ */
+export function mapStepOf(actor, statistic) {
+  const all = actor?.synthetics?.multipleAttackPenalties;
+  if (!all || !statistic) return 5;
+  let options = [];
+  try { options = [...(statistic.createRollOptions?.() ?? []), "attack", "self:action:trait:attack"]; } catch { /* a statistic that cannot say is tested bare */ }
+  let best = -5;
+  for (const d of list(statistic.domains)) for (const e of list(all[d])) {
+    const p = num(e?.penalty);
+    let holds = true;
+    try { holds = e?.predicate?.test ? !!e.predicate.test(options) : true; } catch { holds = false; }
+    if (p != null && p <= 0 && p > best && holds) best = p;
+  }
+  return -best;
+}
+
 export function skillsOf(actor) {
   const skills = {};
   for (const slug of SKILLS) {
     const s = actor.skills?.[slug];
-    if (s) skills[slug] = { slug, name: s.label ?? slug, rank: num(s.rank, s.proficient ? 1 : 0), mod: num(s.mod, 0), kind: "skill" };
+    if (s) {
+      const step = mapStepOf(actor, s);
+      /* `listed`: on an NPC every skill exists; these are the stat block's own */
+      skills[slug] = { slug, name: s.label ?? slug, rank: num(s.rank, s.proficient ? 1 : 0), mod: num(s.mod, 0), kind: "skill", ...(s.proficient ? { listed: true } : {}), ...(step !== 5 ? { mapStep: step } : {}) };
+    }
   }
   const per = actor.perception;
   if (per) skills.perception = { slug: "perception", name: per.label ?? "Perception", rank: num(per.rank, 1), mod: num(per.mod, 0) };
@@ -488,7 +517,6 @@ export function withSkills(deck, sk, { mode, map, t }) {
   return {
     ...deck,
     skills: { ...deck.skills, target: all.target, checks: checksOf(all), suggested: suggested(all, { mode }) },
-    tabs: deck.tabs.map((x) => (x.key === "skills" ? { ...x, count: all.actions.length } : x)),
   };
 }
 
@@ -605,8 +633,12 @@ export function statOf(actor, ctx) {
   const langs = ctx.config?.languages ?? {};
   const passives = list(actor.itemTypes?.action).filter((i) => (i.system?.actionType?.value ?? "passive") === "passive")
     .map((i) => ({ id: i.id, name: i.name, text: inlineText(stripHTML(i.system?.description?.value), ctx) }));
+  /* The skills the stat block lists: an NPC's proficient ones, and its Lores. */
+  const { skills: sk, lores } = skillsOf(actor);
+  const skills = [...Object.values(sk).filter((s) => s.kind === "skill" && (s.listed || s.rank > 0)), ...lores]
+    .sort((x, y) => String(x.name).localeCompare(String(y.name))).map((s) => ({ check: `skill:${s.slug}`, name: s.name, mod: s.mod }));
   return {
-    iwr, passives,
+    iwr, passives, skills,
     senses: list(actor.system?.perception?.senses).map((s) => labelOf(s, ctx)).filter(Boolean),
     speeds,
     languages: list(actor.system?.details?.languages?.value).map((l) => (langs[l] ? ctx.loc(langs[l]) : capWord(String(l).replace(/-/g, " ")))),

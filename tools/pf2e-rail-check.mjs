@@ -37,6 +37,8 @@ import { FLAGS, SETTINGS } from "../scripts/features/pf2e-rail/settings.mjs";
 import * as K from "../scripts/features/pf2e-rail/skill-actions.mjs";
 const { SKILL_ACTIONS } = K;
 import { STATES } from "./pf2e-rail-fixtures.mjs";
+import { DRAWER_BODIES, PARTY_ACTORS, checkNameOf } from "./pf2e-rail-fixtures.mjs";
+import * as C from "../scripts/features/pf2e-rail/calls.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const read = (p) => readFileSync(ROOT + p, "utf8").replace(/\r\n/g, "\n");
@@ -51,7 +53,7 @@ const section = (title, fn) => {
 const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/([^:"'`])\/\/[^\n"'`]*$/gm, "$1");
 
 const DIR = "scripts/features/pf2e-rail/";
-const src = Object.fromEntries(["view.mjs", "read.mjs", "turn.mjs", "echo.mjs", "subject.mjs", "peeks.mjs", "presses.mjs", "shape.mjs", "skill-actions.mjs", "host.mjs", "index.mjs", "settings.mjs", "const.mjs", "drive.mjs", "light.mjs", "moments.mjs"].map((f) => [f, read(DIR + f)]));
+const src = Object.fromEntries(["view.mjs", "read.mjs", "turn.mjs", "echo.mjs", "subject.mjs", "peeks.mjs", "presses.mjs", "shape.mjs", "skill-actions.mjs", "host.mjs", "calls.mjs", "index.mjs", "settings.mjs", "const.mjs", "drive.mjs", "light.mjs", "moments.mjs"].map((f) => [f, read(DIR + f)]));
 const css = read("styles/pf2e-rail.css");
 const lang = JSON.parse(read("lang/pf2e-rail.en.json"));
 const seen = new Set();
@@ -575,7 +577,7 @@ section("the skin is scoped", () => {
 
 section("the host keeps to its own corner", () => {
   const h = strip(src["host.mjs"]);
-  ok(!/game\.socket|emitSocket/.test(h), "the host syncs nothing");
+  ok(!/game\.socket/.test(h) && [...h.matchAll(/emitSocket\(([^;]*);/g)].every((m) => /^FEATURE_ID, /.test(m[1]) && /\{ recipients: /.test(m[1])), "the host syncs nothing but a call, through the suite socket, to named recipients");
   ok(!/\.roll\(\{[^}]*dialog/i.test(h) && !/new\s+\w*Dialog/.test(h), "no HUD roll dialog: every press is PF2e's own");
   ok(/style\.display = off \? "none" : ""/.test(h), "the hotbar and the player list are hidden, and given back");
   ok(/hide\("hotbar", SETTINGS\.hideHotbar\)/.test(h) && /hide\("players", SETTINGS\.hidePlayers\)/.test(h), "each docked Foundry panel is hidden behind its own setting");
@@ -777,7 +779,12 @@ section("the Hit Point field, tooltips and putting things away", () => {
 
 section("the skill sheet shows every skill, and never has to be opened", () => {
   const m = STATES.martial(art);
-  const f = finderOf(m);
+  const full = finderOf(m);
+  /* the pins stand above the sheet, in a row of their own */
+  ok(m.sk.pins.length > 0 && full.rows[0].pinned === true && full.rows[0].actions.map((a) => a.slug).join() === m.sk.pins.join() && full.rows.filter((r) => r.pinned).length === 1, "the pinned actions are the sheet's first row");
+  ok(full.rows[0].actions.every((a) => !a.stat && a.best) && /class="gph-fk is-pins"/.test(V.FINDER(full, t)) && !/class="gph-fk is-pins"[^>]*data-check/.test(V.FINDER(full, t)), "a pin rolls with the character's best skill, and its row's head is a label, not a check");
+  ok(!finderOf({ ...m, sk: { ...m.sk, pins: [] } }).rows.some((r) => r.pinned) && !K.finderModel({ ...m.sk, query: "dem", mode: "encounter", t }).rows.some((r) => r.pinned), "no pins, no row; and typing searches the sheet, not the pins");
+  const f = { ...full, rows: full.rows.filter((r) => !r.pinned) };
   const keys = f.rows.map((r) => r.key);
   const sixteen = keys.filter((k) => R.SKILLS.includes(k));
   ok(keys[0] === "perception", "Perception leads the sheet");
@@ -817,6 +824,8 @@ section("the skill sheet shows every skill, and never has to be opened", () => {
   const html = V.FINDER(f, t);
   const ks = [...html.matchAll(/data-k="(\d+)"/g)].map((x) => +x[1]);
   ok(ks.length === f.rows.length + f.rows.reduce((n, r) => n + r.actions.length, 0) && ks.every((k, i) => k === i), "every check and every action is a key, numbered in reading order");
+  const tabs = R.withSkills(m.deck, m.sk, { mode: m.mode, map: 0, t }).tabs.find((x) => x.key === "skills");
+  ok(tabs && tabs.count == null, "the Skills tab prints no count: it holds every skill, always");
   ok(!/expand-col|gph-more|gph-fchecks/.test(html) && !/expand-col/.test(src["host.mjs"]), "nothing on the sheet is a \"more\" press");
   ok(/\.gph-skrow \{[^}]*grid-template-columns: \d+px minmax\(0, 1fr\)/.test(css) && /\.gph-sacts \{[^}]*repeat\(auto-fill/.test(css), "a row is its check and its actions, in columns that line up down the sheet");
   const host = src["host.mjs"];
@@ -837,6 +846,8 @@ section("the Skills tab is the plain checks, one press each", () => {
   ok(/<span class="gph-skn is-lore"><span>Warfare<\/span><small>Lore<\/small><\/span>/.test(html), "a Lore is its subject, with the word small on a second line");
   ok(/\.gph-cks \{[^}]*grid-auto-columns: minmax\(0, auto\)/.test(css) && /\.gph-skn \{[^}]*text-overflow: ellipsis/.test(css), "a column is as wide as its longest name, and only a deck with no room cuts one");
   ok(/\.gph-cks \{[^}]*grid-auto-flow: column[^}]*grid-template-rows: repeat\(3, 24px\)/.test(css), "the checks fill the pane three deep, in the sheet's order");
+  ok(/@container gph \(max-width: \d+px\) \{\s*\.gph-cks \{[^}]*position: absolute[^}]*grid-auto-flow: row[^}]*grid-template-columns: repeat\(auto-fill/.test(css) && !/\.gph-cks \{[^}]*overflow/.test(css) && !/\.gph-ck\[data-rank="0"\] \{ (display: none|order)/.test(css), "a narrow deck cuts no name, hides no skill and scrolls none: the checks rise as a block");
+  ok(/@media \(max-height: \d+px\) \{[^@]*\.gph-fk, \.gph-fa, \.gph-fab \{ height: 22px/.test(css) && /\.gph-finder \{[^}]*max-height: min\(820px, calc\(100vh - var\(--gph-h\) - 60px\)\)/.test(css), "a 900p screen holds the whole sheet: its lines close up and it may stand taller");
   ok(/\.gph-keys \{ display: none;/.test(css) && /@container gph \(min-width: \d+px\) \{[^@]*\.gph-keys \{ display: grid; \}/.test(css), "the action keys take only the room the names leave");
 });
 
@@ -856,10 +867,67 @@ section("an attack-trait skill action can be rolled at every MAP step", () => {
   ok([0, 1, 2].every((i) => new RegExp(`class="gph-ms" data-skill-action="trip" data-variant="${i}"`).test(tab)), "the tab's keys carry the same three steps");
   ok(/>\+15<\/button>.*>\+10<\/button>.*>\+5<\/button>/s.test(tab.slice(tab.indexOf('data-skill-action="trip" data-variant="0"') - 40)), "and print each step's own modifier, whatever the turn's MAP");
   const host = src["host.mjs"];
-  ok(/this\.useSkillAction\(d\.skillAction, d\.variant != null \? \+d\.variant : undefined/.test(host) && /multipleAttackPenalty: map/.test(host) && /const map = a\.attack \? \(variant \?\? this\.model\?\.turnbar\?\.map \?\? 0\) : 0/.test(host),
+  ok(/this\.useSkillAction\(d\.skillAction, d\.variant != null \? \+d\.variant : undefined/.test(host) && /multipleAttackPenalty: mapArg\(map, a\.mapStep\)/.test(host) && /const mapArg = \(step, per\) => \(per == null \|\| per === 5 \|\| !step \? step : -per \* step\)/.test(host) && /const map = a\.attack \? \(variant \?\? this\.model\?\.turnbar\?\.map \?\? 0\) : 0/.test(host),
     "a step press hands PF2e that step; the name rolls at the turn's own");
   ok(!/<button[^>]*>(?:(?!<\/button>)[\s\S])*<button/.test(sheet) && !/<button[^>]*>(?:(?!<\/button>)[\s\S])*<button/.test(tab), "no press is nested inside another");
   ok(/\.gph-ms \{[^}]*min-height: 18px[^}]*max-height: 18px/.test(css), "a MAP step states its own size");
+  /* a rule that lowers a skill's penalty: PF2e's skill actions consult nothing, so it is honoured here */
+  const stat = (domains) => ({ domains, createRollOptions: () => ["self:level:5"] });
+  const rule = (penalty, pass = true) => ({ penalty, predicate: { test: () => pass } });
+  const syn = (m) => ({ synthetics: { multipleAttackPenalties: m } });
+  ok(R.mapStepOf({}, stat(["athletics"])) === 5 && R.mapStepOf(syn({}), stat(["athletics"])) === 5 && R.mapStepOf(syn({ attack: [rule(-3)] }), stat(["athletics", "skill-check"])) === 5, "by the book a step costs 5, and a rule written for Strikes is not read for a skill");
+  ok(R.mapStepOf(syn({ athletics: [rule(-4), rule(-3, false)] }), stat(["athletics"])) === 4 && R.mapStepOf(syn({ athletics: [rule(-4)], "skill-check": [rule(-3)] }), stat(["athletics", "skill-check"])) === 3 && R.mapStepOf(syn({ athletics: [rule(-7), rule(2)] }), stat(["athletics"])) === 5, "a rule on the skill's own domain lowers it where its predicate holds; the mildest wins, and none makes it worse");
+  const low = K.finderModel({ ...m.sk, skills: { ...m.sk.skills, athletics: { ...m.sk.skills.athletics, mapStep: 4 } }, query: "", mode: "encounter", map: 1, t });
+  const trip4 = low.rows.find((r) => r.key === "athletics").actions.find((a) => a.slug === "trip");
+  ok(trip4.variants.join() === "+15,+11,+7" && trip4.mapMod === 11 && trip4.mapStep === 4, `a lowered step is what the presses print (got ${trip4.variants.join()})`);
+  const mapArg = new Function(`return ${host.match(/const mapArg = ([^;]+);/)[1]}`)();
+  ok(mapArg(0, 4) === 0 && mapArg(1, 4) === -4 && mapArg(2, 4) === -8 && mapArg(2, undefined) === 2 && mapArg(1, 5) === 1, "and what PF2e is handed: the step by the book, the penalty itself where a rule lowered it");
+});
+
+const g2skills = () => { const g = STATES.gm(art); const b = V.STATBLOCK(g.creature, t); return g.creature.stat.skills.every((k) => b.includes(`class="gph-sk" data-check="${k.check}"`)); };
+section("the GM reads the party's checks, rolls one in secret and calls for one", () => {
+  const art = (p) => p;
+  const party = PARTY_ACTORS(art);
+  const p = C.partyChecks(party, { name: checkNameOf });
+  ok(p.rows.length === 20 && p.rows[0].check === "perception" && p.rows.slice(1, 4).map((x) => x.check).join() === "fortitude,reflex,will" && p.rows.slice(4).every((x) => x.check.startsWith("skill:")) && p.rows.every((x) => x.cells.length === party.length), "the grid is Perception, the saves and the sixteen skills, a cell per character");
+  const ath = p.rows.find((x) => x.check === "skill:athletics"), perf = p.rows.find((x) => x.check === "skill:performance");
+  ok(ath.cells.filter((c) => c.best).map((c) => c.id).join() === "valeros" && perf.cells.filter((c) => c.best).length === 2, "the best modifier in a row is marked, every holder of it on a tie");
+  ok(!C.partyChecks(party.slice(0, 1), { name: checkNameOf }).rows.some((x) => x.cells.some((c) => c.best)), "a row where everybody is equal marks nobody");
+  const html = V.PARTYCHECKS(p, t);
+  ok(p.rows.every((x) => html.includes(`data-call="${x.check}"`) && x.cells.every((c) => html.includes(`data-pcheck="${x.check}" data-actor="${c.id}"`))), "every row's name calls for the check, every number rolls it for that character");
+  ok(p.rows.every((x) => html.includes(`<span>${x.name}</span>`)), "every check is named whole");
+  /* a call */
+  const call = C.makeCall({ check: "skill:athletics", dc: "20", showDc: false, id: "c1", at: 1000 });
+  ok(call && !("dc" in call) && C.makeCall({ check: "skill:athletics", dc: "20", showDc: true, id: "c1", at: 1000 }).dc === 20, "the DC leaves the GM's screen only when the GM shows it");
+  ok(C.makeCall({ check: "skill:athletics\" onclick=", id: "x", at: 0 }) === null && C.makeCall({ check: "strike:0", id: "x", at: 0 }) === null, "a call names one of the checks the grid rolls and nothing else");
+  ok(C.readCall(call, { fromGM: false, now: 0 }) === null && C.readCall({ ...call, sender: "gm", isGM: true }, { fromGM: false, now: 0 }) === null, "a call from anyone the server does not name a GM is nothing, whatever the payload says");
+  ok(C.readCall({ type: "call", id: "x", check: "skill:nonsense" }, { fromGM: true }) === null && C.readCall({ type: "call", id: 5, check: "perception" }, { fromGM: true }) === null && C.readCall(null, { fromGM: true }) === null && C.readCall({ type: "call", id: "x", check: "perception", dc: "<b>" }, { fromGM: true, now: 0 }).dc === undefined, "the reader is total: a malformed call is nothing, a malformed DC is no DC");
+  const got = C.readCall({ ...call, dc: 22, extra: "<img>" }, { fromGM: true, now: 5000 });
+  ok(Object.keys(got).sort().join() === "check,dc,id,until" && got.until === 5000 + C.CALL_LIFE, "a call keeps its id, its check, its DC and its hour, and nothing else of the payload");
+  const who = party[0].actor;
+  const cm = C.callModel(got, who, { name: checkNameOf, now: 6000 });
+  ok(cm && cm.name === "Athletics" && cm.mod === 15 && cm.dc === 22 && C.callModel(got, who, { name: checkNameOf, now: got.until }) === null && C.callModel(got, {}, { name: checkNameOf, now: 6000 }) === null, "the rail draws a live call for a character who has the statistic, and none once it has run out");
+  const bar = V.CALLBAR(cm, t);
+  ok(/data-check="skill:athletics" data-answer="c1"/.test(bar) && /<b>Athletics<\/b><em>\+15<\/em><i>DC 22<\/i>/.test(bar) && /data-act="call-dismiss"/.test(bar) && !/DC/.test(V.CALLBAR({ ...cm, dc: undefined }, t)), "a call is one press: the check named whole, the character's modifier, the DC only where shown");
+  ok(V.RAIL({ ...STATES.martial(art), call: cm }, t).includes('class="gph-call"') && !V.RAIL({ ...STATES.gm(art), call: cm }, t).includes('class="gph-call"') && !V.RAIL(STATES.martial(art), t).includes("gph-call"), "the call stands on a player's rail, never the GM's, and only while there is one");
+  ok(V.RAIL(STATES.gm(art), t).includes('data-drawer="party"') && !V.RAIL(STATES.martial(art), t).includes('data-drawer="party"') && DRAWER_BODIES.party(V, t, art, STATES.martial(art)) === null, "the party's checks open from the GM's stack and from nowhere else");
+  ok(C.readCall({ type: "end", id: "c1" }, { fromGM: true }).end === "c1" && C.readCall({ type: "end", id: "c1" }, { fromGM: false }) === null, "only a GM takes a call back");
+  /* answers */
+  const out = { ...call };
+  ok(C.answersCall(out, { actorId: "valeros", ctx: { type: "skill-check", domains: ["athletics", "skill-check"] }, at: 2000 }) && !C.answersCall(out, { actorId: "valeros", ctx: { type: "skill-check", domains: ["acrobatics"] }, at: 2000 })
+    && !C.answersCall(out, { actorId: "valeros", ctx: { type: "skill-check", domains: ["athletics"] }, at: 500 }) && !C.answersCall(out, { actorId: null, ctx: { type: "skill-check", domains: ["athletics"] }, at: 2000 })
+    && C.answersCall({ check: "will", at: 0 }, { actorId: "a", ctx: { type: "saving-throw", domains: ["will"] }, at: 1 }) && C.answersCall({ check: "perception", at: 0 }, { actorId: "a", ctx: { type: "perception-check", domains: ["perception"] }, at: 1 }),
+    "an answer is the called check, by a character, after the call");
+  const lit = V.PARTYCHECKS(p, t, { dc: "20", showDc: true, call: { check: "skill:athletics", name: "Athletics", answered: ["valeros"] } });
+  ok(/class="is-called"/.test(lit) && /gph-pc-cell is-best is-in" data-pcheck="skill:athletics" data-actor="valeros"/.test(lit) && (lit.match(/ is-in"/g) ?? []).length === 1 && /data-act="call-end"/.test(lit) && /1 of 4 rolled/.test(lit), "a standing call lights its row, marks who has rolled and can be ended");
+  /* the host */
+  const h = src["host.mjs"];
+  ok(/onCall\(payload, attested\) \{\s*if \(game\.user\.isGM \|\| this\.stream\) return;\s*const call = readCall\(payload, \{ fromGM: !!\(attested && game\.users\.get\(attested\)\?\.isGM\)/.test(h) && /onSocket\(FEATURE_ID, \(payload, _claimed, meta\) => this\.onCall\(payload, meta\?\.attested \?\? null\)\)/.test(h), "the host honours a call only from the server-attested sender, and never on the stream login");
+  ok(/sendCall\(check\) \{\s*if \(!game\.user\.isGM\) return;\s*const users = game\.users\.filter\(\(u\) => u\.active && !u\.isGM\)/.test(h), "a call goes to the connected players alone (the stream login holds GM rights)");
+  ok(/secretCheck\(check, actorId\) \{\s*if \(!game\.user\.isGM\) return;[\s\S]{0,200}roll\(\{ messageMode: "gm"/.test(h) && !/secretCheck[\s\S]{0,300}roll\(\{[^}]*event/.test(h), "a secret check is PF2e's GM-only message, with no event to turn it public");
+  ok(/if \(kind === "party"\) \{\s*if \(!game\.user\.isGM\) return null;/.test(h), "the party drawer is the GM's");
+  ok(!/setFlag|settings\.set\([^)]*call/i.test(src["calls.mjs"]) && !/\b(game|canvas|foundry|ui|Hooks|document|window)\b\./.test(src["calls.mjs"].replace(/\/\*[\s\S]*?\*\//g, "")), "calls.mjs is pure, and a call is stored nowhere");
+  ok(/@container gph \(max-width: \d+px\) \{ \.gph-call,/.test(css) && /\.gph-pc-cell \{[^}]*height: 22px; min-height: 22px; max-height: 22px/.test(css) && /\.gph-pcb \{[^}]*height: 24px; min-height: 24px; max-height: 24px/.test(css) && /\.gph-call-roll \{[^}]*height: 34px; min-height: 34px/.test(css), "every new press states its own size, and the call steps over a narrow deck's checks");
 });
 
 section("the GM reads a creature's passives without opening anything", () => {
@@ -879,6 +947,8 @@ section("the GM reads a creature's passives without opening anything", () => {
   ok(s.iwr.map((x) => `${x.k}:${x.text}`).join("|") === "immune:fear|weak:Cold iron 5|resist:physical 3 (except bludgeoning)", `immunities, weaknesses and resistances, in PF2e's own words (got ${s.iwr.map((x) => `${x.k}:${x.text}`).join("|")})`);
   ok(s.passives.map((p) => p.id).join() === "n3", "the passives are the abilities with no action to take; a reaction or an action is a move already, and is not drawn twice");
   ok(s.passives[0].text === "Reduce physical damage by 3. Fortitude DC 18", `a passive's text is read plain, inline syntax resolved (got ${s.passives[0].text})`);
+  ok(s.skills.map((k) => `${k.check}:${k.mod}`).join() === "skill:athletics:14,skill:intimidation:10", `the skills the stat block lists, each a check (got ${s.skills.map((k) => `${k.check}:${k.mod}`).join()})`);
+  ok(g2skills(), "the stat block draws each listed skill as a press");
   ok(s.senses.join() === "Scent (imprecise) 30 ft" && s.speeds.length === 2 && s.languages.length === 2, "senses, the speeds it has, languages");
   const c = R.creatureOf(a, { t, loc, config: {}, formulas: new Map() });
   ok(c.stat && c.stat.iwr.length === 3, "the creature's model carries its stat block");
@@ -892,7 +962,7 @@ section("the GM reads a creature's passives without opening anything", () => {
   ok(g.creature.stat.passives.every((p) => block.includes(p.text.slice(0, 30).replace(/&/g, "&amp;"))) && /Jotun/.test(block) && /Climb/.test(block), "the drawer has each passive's text, the speeds and the languages");
   ok(/V\.STATBLOCK\(m\.creature, t\)/.test(src["host.mjs"]), "the host builds the stat block drawer");
   const host = src["host.mjs"];
-  ok(/this\.open\.drawer === "statblock" && model\.creature/.test(host) && /this\.open\.drawer !== "statblock"\) \{ this\.open\.drawer = null; this\.render\(\); \}/.test(host) && /if \(this\.open\.drawer !== "statblock"\) this\.open\.drawer = null;/.test(host),
+  ok(/this\.open\.drawer === "statblock" && model\.creature/.test(host) && /STAYS = new Set\(\["statblock", "party"\]\)/.test(host) && /!STAYS\.has\(this\.open\.drawer\)\) \{ this\.open\.drawer = null; this\.render\(\); \}/.test(host) && /if \(!STAYS\.has\(this\.open\.drawer\)\) this\.open\.drawer = null;/.test(host),
     "the stat block stays open from creature to creature, and through a press on the canvas");
   ok(/\.gph-sb-run \{[^}]*flex-wrap: wrap[^}]*max-height: 52px/.test(css), "the bar takes two lines before anything is cut");
 });

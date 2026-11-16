@@ -13,6 +13,7 @@
  * which the host turns into `deck.skills` and the finder through
  * scripts/features/pf2e-rail/skill-actions.mjs, exactly as Foundry will.
  */
+import { partyChecks } from "../scripts/features/pf2e-rail/calls.mjs";
 
 const party = (art, skip) => [
   { id: "kyra", name: "Kyra", img: art("iconics/Kyra.webp"), hp: [61, 61], ac: 22, hero: [1, 3] },
@@ -294,6 +295,7 @@ function gm(art, o = {}) {
           { id: "stench", name: "Reeking Aura", text: "10 feet. A creature that enters the aura or starts its turn there attempts a DC 18 Fortitude save or is sickened 1." },
           { id: "grip", name: "Crushing Grip", text: "A creature the ogre has grabbed takes 1d6 bludgeoning damage at the start of each of its turns." },
         ],
+        skills: [{ check: "skill:athletics", name: "Athletics", mod: 12 }, { check: "skill:intimidation", name: "Intimidation", mod: 7 }, { check: "skill:survival", name: "Survival", mod: 5 }],
         senses: ["Low-light vision", "Scent (imprecise) 30 ft"],
         speeds: ["Land 25 ft", "Climb 15 ft"],
         languages: ["Jotun", "Common"],
@@ -459,7 +461,25 @@ export const PEEKS = {
     } }),
 };
 
+/* The party as the host hands it to calls.mjs: actors with the statistics
+   a check key rolls. Modifiers and ranks per character, by check. */
+const NAMES = { perception: "Perception", fortitude: "Fortitude", reflex: "Reflex", will: "Will", acrobatics: "Acrobatics", arcana: "Arcana", athletics: "Athletics", crafting: "Crafting",
+  deception: "Deception", diplomacy: "Diplomacy", intimidation: "Intimidation", medicine: "Medicine", nature: "Nature", occultism: "Occultism", performance: "Performance",
+  religion: "Religion", society: "Society", stealth: "Stealth", survival: "Survival", thievery: "Thievery" };
+export const checkNameOf = (check) => NAMES[String(check).replace(/^skill:/, "")] ?? check;
+const pc = (id, name, img, per, saves, skills) => ({ id, name, img, perception: { mod: per[0], rank: per[1] },
+  saves: Object.fromEntries(["fortitude", "reflex", "will"].map((k, i) => [k, { mod: saves[i][0], rank: saves[i][1] }])),
+  skills: Object.fromEntries(Object.keys(NAMES).slice(4).map((k) => [k, { mod: skills[k]?.[0] ?? skills._, rank: skills[k]?.[1] ?? 0 }])) });
+export const PARTY_ACTORS = (art) => [
+  pc("valeros", "Valeros", art("iconics/ValerosFull.webp"), [12, 2], [[13, 2], [11, 2], [9, 1]], { _: 1, acrobatics: [10, 1], athletics: [15, 2], crafting: [8, 1], diplomacy: [7, 1], intimidation: [13, 2], medicine: [6, 1], society: [6, 1], stealth: [10, 1], survival: [8, 1] }),
+  pc("ezren", "Ezren", art("iconics/EzrenFull.webp"), [13, 1], [[11, 1], [13, 2], [16, 2]], { _: 1, arcana: [17, 3], crafting: [15, 2], diplomacy: [9, 1], medicine: [10, 1], nature: [11, 1], occultism: [15, 2], religion: [11, 1], society: [15, 2] }),
+  pc("kyra", "Kyra", art("iconics/KyraFull.webp"), [14, 2], [[12, 2], [9, 1], [15, 2]], { _: 2, athletics: [9, 1], diplomacy: [11, 1], medicine: [14, 2], religion: [14, 2], society: [8, 1], survival: [10, 1] }),
+  pc("merisiel", "Merisiel", art("iconics/MerisielFull.webp"), [12, 2], [[9, 1], [15, 3], [10, 1]], { _: 2, acrobatics: [14, 2], athletics: [9, 1], deception: [11, 1], diplomacy: [9, 1], society: [8, 1], stealth: [15, 3], thievery: [15, 3] }),
+].map((actor) => ({ actor }));
+
 export const DRAWER_BODIES = {
+  party: (V, t, art, model, o = {}) => (model.role === "gm" ? { title: t("GLRAIL.call.open"), wide: true, body: V.PARTYCHECKS(partyChecks(PARTY_ACTORS(art), { name: checkNameOf }), t,
+    o.called ? { dc: "20", showDc: true, call: { check: "skill:athletics", name: "Athletics", answered: ["valeros", "kyra"] } } : {}) } : null),
   inventory: (V, t, art) => ({ title: t("GLRAIL.drawer.inventory"), note: "4 Bulk of 9", body: V.DLIST({ rows: [
     { head: "Consumables" }, { key: "i:elixir", act: true, name: "Minor Elixir of Life", icon: art("equipment/consumables/elixirs/elixir-of-life.webp"), n: "×2", meta: "Use" },
     { key: "i:potion", act: true, name: "Lesser Healing Potion", n: "×1", meta: "Use" },

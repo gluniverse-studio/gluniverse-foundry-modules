@@ -34,6 +34,7 @@
  */
 
 import { SUITE_ID } from "../../core/const.mjs";
+import { diceSettled } from "../../core/dice-wait.mjs";
 import { seesTruth } from "../pf2e-odds/view.mjs";
 import { metagame, reachedPlayers } from "../pf2e-odds/observe.mjs";
 import { seedOf } from "./core/rand.mjs";
@@ -163,26 +164,8 @@ function aaPlays(item) {
   return false;
 }
 
-const sleep = (s) => new Promise((resolve) => setTimeout(resolve, Math.max(0, s) * 1000));
-
 /** Resolves once Dice So Nice has shown a message's roll (or after TIMING.diceWait). */
-async function diceDone(message) {
-  if (!message?.rolls?.length) return;
-  const dsn = game.dice3d;
-  if (!dsn || !game.modules?.get("dice-so-nice")?.active) return;
-  try {
-    if (typeof dsn.waitFor3DAnimationByMessageID === "function") {
-      await Promise.race([dsn.waitFor3DAnimationByMessageID(message.id), sleep(TIMING.diceWait)]);
-      return;
-    }
-  } catch { /* fall back to the hook */ }
-  await new Promise((resolve) => {
-    let id = null;
-    const done = () => { clearTimeout(timer); if (id != null) Hooks.off("diceSoNiceRollComplete", id); resolve(); };
-    id = Hooks.on("diceSoNiceRollComplete", (mid) => { if ((typeof mid === "string" ? mid : mid?.id) === message.id) done(); });
-    const timer = setTimeout(done, TIMING.diceWait * 1000);
-  });
-}
+const diceDone = (message) => diceSettled(message, { timeout: TIMING.diceWait * 1000 });
 
 /* ── spec assembly ─────────────────────────────────────────────────────── */
 

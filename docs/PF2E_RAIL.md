@@ -263,7 +263,12 @@ named whole, in the sheet's order (by name), three deep; a column is as wide as
 its longest name. A Lore is its subject with the word small on a second line.
 The keys never move, so nobody has to search for Athletics. Proficiency is the
 rule under a key, in PF2e's rank hue; an untrained skill is dimmer. A deck too
-narrow for sixteen names keeps the trained ones (`@container gph`); a deck with
+narrow for sixteen names cuts none, hides none and scrolls none: the checks
+become a block that rises out of the deck, as many columns as full names fit
+(`@container gph`), so every skill is one press on a 900p screen with the
+sidebar open. The sheet closes its lines up on a short screen
+(`@media (max-height)`) and holds every skill at 900p without scrolling. The
+tab prints no count, because it always holds every skill. A deck with
 room to spare also shows the actions worth reaching for (the pins first, then
 the best odds against the target, then the mode's staples) and a key that opens
 the sheet.
@@ -272,6 +277,10 @@ the sheet.
 `finderModel().rows`: Perception, the sixteen skills, the Lores, every one of
 them always there. A row's head is that skill's plain check; beside it is every
 action that skill can roll. Nothing is folded and nothing has to be opened.
+Above them, while nothing is typed, stands one **Pinned** row: the character's
+pins, each rolled with its best skill, so a pin is one glance away on any deck
+(the rail's own keys show pins only where the deck has room). Its head is a
+label, never a check, and the pinned actions keep their places in the rows below.
 
 - An action several skills can roll (Recall Knowledge, Escape, Earn Income)
   stands in each of their rows and is rolled with **that row's** skill
@@ -291,7 +300,14 @@ Reposition, Escape, Force Open) carries three presses beside its name, as a
 strike's row does: first, second and third attack, each printing its own
 modifier, none lit by the turn. A step hands PF2e that step
 (`multipleAttackPenalty`), and PF2e applies its own penalty for it (−5, then
-−10), which is what the press prints. The action's name rolls at the turn's own step; `1`–`3` on the
+−10), which is what the press prints. PF2e's skill actions consult nothing
+else: no weapon's agile trait and no rule element (its compendium rules all
+select `attack`, a domain a skill check is not in, and Agile Maneuvers has no
+rules at all). So `mapStepOf` reads the one thing that can lower it for a
+skill, a MultipleAttackPenalty rule element whose selector is one of the
+statistic's own domains (`athletics`, `skill-check`), takes the mildest whose
+predicate holds, prints it, and hands PF2e the penalty itself as a negative
+number, which `use()` applies unchanged. The action's name rolls at the turn's own step; `1`–`3` on the
 sheet press a step of the selected action.
 
 ## The GM's stat bar
@@ -302,8 +318,34 @@ and the exceptions), then every ability with no action to take (`actionType`
 passive; reactions and free actions are among the moves already), then the senses. Two lines at
 most. A passive is a press that peeks its text, as an ability chip does.
 **Stat block** opens a drawer with the same facts whole, plus speeds, languages
-and each passive's text; it stays open from creature to creature and through a
+each passive's text and the creature's listed skills as presses (the same
+`data-check` a save uses); it stays open from creature to creature and through a
 press on the canvas, and closes on its ✕ or Escape.
+
+## The party's checks, and a call (`calls.mjs`)
+
+**Party checks** (the press under the GM's party stack) is a grid: Perception,
+the three saves and the sixteen skills down the side, a column per character,
+the best modifier in each row marked. It stays open through a press on the
+canvas, as the stat block does.
+
+- **A number rolls that character's check in secret**: PF2e's own statistic
+  roll with `messageMode: "gm"` and no event (an event would let a modifier key
+  turn it public). The DC field, when filled, is handed to the roll.
+- **A name calls for the check.** The GM's client sends one message on the suite
+  socket to the connected players (`recipients`, filtered by the server; the
+  stream login holds GM rights and is never one). Each player's rail shows one
+  press beside the turn bar: the check named whole, their own modifier, and the
+  DC only when the GM ticked "show". Pressing it is the ordinary check. A call
+  ends when answered or put away, when the GM ends it, or after `CALL_LIFE`.
+  The grid lights the called row and marks who has rolled.
+
+A call is stored nowhere. Three rules keep it honest, and the check pins them:
+a call is honoured only when the **server-attested** sender is a GM
+(`meta.attested`; the payload's own claim is never read); `readCall` is total
+and keeps only the id, a check from `CALL_CHECKS`, a DC in range and the expiry;
+and a hidden DC never leaves the GM's client, because a DC handed to PF2e is
+printed on the card.
 
 ## The echo (`echo.mjs`)
 

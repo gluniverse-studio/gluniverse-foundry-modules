@@ -182,10 +182,10 @@ try {
     if (o.deck && model.sk) {
       const all = finder('');
       o.deck = { ...o.deck, skills: { ...o.deck.skills, target: all.target, checks: K.checksOf(all), suggested: K.suggested(all, { mode: model.mode }) } };
-      o.deck.tabs = o.deck.tabs.map((x) => (x.key === 'skills' ? { ...x, count: all.actions.length } : x));
     }
     if (fs.open && model.sk) o.overlay = V.FINDER(finder(), t);
-    else if (open.drawer && DRAWER_BODIES[open.drawer]) { const d = DRAWER_BODIES[open.drawer](V, t, art, model); if (d) o.overlay = V.DRAWER(d); }
+    else if (open.drawer && DRAWER_BODIES[open.drawer]) { const d = DRAWER_BODIES[open.drawer](V, t, art, model, { called: q.get('called') === '1' }); if (d) o.overlay = V.DRAWER(d); }
+    if (q.get('call') && model.role !== 'gm') o.call = { id: 'c1', check: 'skill:athletics', name: 'Athletics', mod: 15, ...(q.get('call') === 'dc' ? { dc: 20 } : {}) };
     return o;
   }
   const light = new RailLight();

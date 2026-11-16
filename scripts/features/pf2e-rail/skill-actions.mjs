@@ -149,7 +149,7 @@ export function finderModel(o) {
     if (a.vs && a.vs !== "dc") {
       const known = target ? target.defences?.[a.vs] ?? null : undefined;
       if (known !== undefined) {
-        const mod = skill.mod - (a.attack ? map * mapStep : 0);
+        const mod = skill.mod - (a.attack ? map * (skill.mapStep ?? mapStep) : 0);
         const odds = known == null ? null : oddsOf({ mod, dc: known });
         const chance = odds?.headline ? (odds.headline.lo === odds.headline.hi ? odds.headline.lo : [odds.headline.lo, odds.headline.hi]) : null;
         vs = { stat: a.vs, label: t(`GLRAIL.check.${a.vs}`, {}), dc: typeof known === "number" ? known : known ? `${known.lo}–${known.hi}` : null, chance, degrees: known == null ? null : degrees(mod, known) };
@@ -163,8 +163,10 @@ export function finderModel(o) {
     return {
       id: a.slug, slug: a.slug, name, cost: a.cost, group: a.group, pinned: pinned.has(a.slug),
       skill: { slug: skill.slug, name: skill.name, mod: skill.mod, rank: skill.rank },
-      attack: !!a.attack, variants: a.attack ? [0, 1, 2].map((i) => sign(skill.mod - i * mapStep)) : null,
-      mapMod: a.attack ? skill.mod - map * mapStep : null,
+      attack: !!a.attack, variants: a.attack ? [0, 1, 2].map((i) => sign(skill.mod - i * (skill.mapStep ?? mapStep))) : null,
+      mapMod: a.attack ? skill.mod - map * (skill.mapStep ?? mapStep) : null,
+      /* the penalty a step costs with this skill, where a rule made it milder than the book's 5 */
+      ...(a.attack && skill.mapStep != null ? { mapStep: skill.mapStep } : {}),
       vs, locked, secret: !!a.secret, note: a.note ?? null,
     };
   };
@@ -211,13 +213,16 @@ export function finderModel(o) {
       /* found by one of its actions only: the check is drawn, and the keys skip it */
       ...(query && !named ? { aside: true } : {}), actions: list });
   }
+  /* The pins, first: each at the character's best skill for it. */
+  const pinnedNow = query ? [] : actions.filter((a) => a.pinned && !a.locked);
+  if (pinnedNow.length) rows.unshift({ key: "pinned", name: t("GLRAIL.skill.pins"), pinned: true, actions: pinnedNow.map((a) => ({ ...a, best: true })) });
   return { target: target ? { name: target.name, img: target.img, known: target.known ?? null } : null, query, sel: o.sel ?? 0, map, actions, rows };
 }
 
 /** The Skills tab's plain checks: every skill and Lore, in the sheet's
  *  order. Perception is on the vitals plate already. */
 export function checksOf(model) {
-  return model.rows.filter((r) => r.key !== "perception").map((r) => ({ key: r.key, name: r.name, mod: r.mod, rank: r.rank, check: r.check, ...(r.lore ? { lore: true } : {}) }));
+  return model.rows.filter((r) => r.key !== "perception" && !r.pinned).map((r) => ({ key: r.key, name: r.name, mod: r.mod, rank: r.rank, check: r.check, ...(r.lore ? { lore: true } : {}) }));
 }
 
 /** The Skills tab's keys: what is worth reaching for right now. Pins first,

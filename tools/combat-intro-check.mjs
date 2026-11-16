@@ -290,6 +290,60 @@ if (mj.styles.indexOf("styles/initiative-aegis.css") < mj.styles.indexOf("styles
 if (!mj.languages.some((l) => l.path === "lang/combat-intro.en.json")) fail("module.json: lang/combat-intro.en.json not loaded");
 if (!existsSync(join(ROOT, "docs/adr/0001-scoped-skins.md"))) fail("docs: the scoped-skin ADR is missing");
 
+/* ── the rail's dice hold (an ordinary initiative roll) ──────────────── */
+// PF2e posts the initiative message, awaits it, THEN writes the tracker, so the
+// rail would print the number and re-sort while Dice So Nice is still rolling.
+// The rail holds the roller as it was until diceSettled; each rule below is
+// silent when it breaks: a result shown early, or hidden forever.
+{
+  const H = await imp("scripts/features/initiative/dice-hold.mjs");
+  if (H.COMBAT_INTRO_FLAG !== C.FLAG) fail(`dice hold: COMBAT_INTRO_FLAG "${H.COMBAT_INTRO_FLAG}" drifted from combat-intro's FLAG "${C.FLAG}" — the hold would run under a cinematic start`);
+  const roll = (total) => [{ total }];
+  const msg = (id, extra = {}) => ({ id, rolls: roll(17), speaker: { token: "tA", actor: "aA" }, flags: { pf2e: { context: { type: "initiative" } } }, ...extra });
+  if (!H.isInitiativeRollMessage(msg("m"), "suite")) fail("dice hold: a PF2e initiative message is not recognised");
+  if (!H.isInitiativeRollMessage({ id: "m", rolls: roll(3), flags: { core: { initiativeRoll: true } } }, "suite")) fail("dice hold: Foundry's core.initiativeRoll flag is not recognised");
+  if (H.isInitiativeRollMessage(msg("m", { flags: { pf2e: { context: { type: "skill-check" } } } }), "suite")) fail("dice hold: a skill check is treated as initiative");
+  if (H.isInitiativeRollMessage(msg("m", { flags: { pf2e: { context: { type: "initiative" } }, "dice-so-nice": { skip: true } } }), "suite")) fail("dice hold: a DSN-skipped card (Combat Intro's held post) is held");
+  if (H.isInitiativeRollMessage(msg("m", { flags: { pf2e: { context: { type: "initiative" } }, suite: { spotlight: {} } } }), "suite")) fail("dice hold: a Spotlight/Combat Intro card is held");
+  if (H.isInitiativeRollMessage(msg("m", { rolls: [] }), "suite")) fail("dice hold: a message with no dice is held");
+
+  const A = { id: "A", tokenId: "tA", actorId: "aA", initiative: null };
+  const Ax = { id: "Ax", tokenId: "tA", actorId: "aA", initiative: null };   // a boss's extra turn
+  const B = { id: "B", tokenId: "tB", actorId: "aB", initiative: 20 };
+  const D = { id: "D", tokenId: "tD", actorId: "aD", initiative: 10 };
+  const matched = H.combatantsForMessage([A, Ax, B, D], msg("m")).map(c => c.id).join();
+  if (matched !== "A,Ax") fail(`dice hold: the roller's combatants by token should be A,Ax (boss turns share the token), got ${matched}`);
+  if (H.combatantsForMessage([A, B], { speaker: {}, flags: {} }).length) fail("dice hold: a message naming nobody matched a combatant");
+
+  const hold = new H.DiceHold();
+  hold.hold(msg("m1"), [A], ["B", "D", "A"]);
+  hold.hold(msg("m2", { speaker: { token: "tD" } }), [D], ["B", "D", "A"]);   // Roll All: two messages before one update
+  // The update lands: A rolled 17 and D rolled 30, so the truth is D, A, B.
+  const liveA = { ...A, initiative: 17 }, liveD = { ...D, initiative: 30 };
+  if (hold.initiativeOf(liveA) !== null || hold.initiativeOf(liveD) !== 10) fail("dice hold: a held card shows its new number before the dice land");
+  if (hold.initiativeOf(B) !== 20) fail("dice hold: a combatant nobody rolled for is not drawn as the truth");
+  const shown = hold.order([liveD, liveA, B]).map(t => t.id).join();
+  if (shown !== "B,D,A") fail(`dice hold: held combatants must keep their old slots (B,D,A), got ${shown}`);
+  hold.release("m2");
+  const half = hold.order([liveD, liveA, B]).map(t => t.id).join();
+  if (half !== "D,B,A" || hold.initiativeOf(liveD) !== 30) fail(`dice hold: releasing one roll must show that one alone, A still in its old slot (D,B,A), got ${half}`);
+  hold.release("m1");
+  if (hold.size || hold.order([liveD, liveA, B]).map(t => t.id).join() !== "D,A,B") fail("dice hold: once every die lands the rail must draw the truth");
+  // Foundry core order: the update (and its render) came first, so the number is
+  // already on the table and the late message must not hide it again.
+  if (hold.hold(msg("m3"), [liveA], ["A"]).length) fail("dice hold: a message arriving after its own update re-hid a number already drawn");
+
+  const railSrc = strip(rail);
+  if (!/Hooks\.on\("createChatMessage"[^\n]*onInitiativeMessage/.test(railSrc)) fail("dice hold: the rail does not hold on createChatMessage");
+  const onMsg = railSrc.match(/onInitiativeMessage\(message\) \{[\s\S]*?\n  \}\n/)?.[0] ?? "";
+  if (!/diceSettled\(message\)/.test(onMsg)) fail("dice hold: the rail must release through diceSettled (core/dice-wait.mjs)");
+  if (!/setTimeout\(release, DICE_WAIT_MS/.test(onMsg)) fail("dice hold: the rail's hold needs a hard cap, or a lost settle hides a result for good");
+  if (!/COMBAT_INTRO_FLAG/.test(onMsg)) fail("dice hold: the rail must stand down while Combat Intro holds the combat");
+  if (!/initiative: this\.diceHold\.initiativeOf\(combatant\)/.test(railSrc)) fail("dice hold: the card's initiative badge does not read the hold");
+  const bvm = railSrc.match(/buildViewModel\(combat.*\) \{[\s\S]*?\n  \}\n/)?.[0] ?? "";
+  if (!/this\.displayTurns\(combat\)/.test(bvm) || /combat\.turns/.test(bvm)) fail("dice hold: buildViewModel must order cards through displayTurns, never combat.turns");
+}
+
 /* ── report ─────────────────────────────────────────────────────────── */
 if (problems.length) {
   console.log(`combat-intro-check: ${problems.length} problem(s)`);
