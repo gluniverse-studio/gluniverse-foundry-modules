@@ -879,7 +879,10 @@ export class RailHost {
   /** `stat` is the sheet row the press stands in: an action several skills
    *  can roll is rolled with that row's, not with the character's best. */
   async useSkillAction(id, variant, event, button, kind = null, stat = null) {
-    const f = this.finder("");
+    /* Every action, whatever the sheet is showing: typing finds an
+       exploration action in an encounter, and it must still be pressable. */
+    const m = this.model;
+    const f = m?.sk ? K.finderModel({ ...m.sk, query: "", sel: 0, mode: "exploration", map: m.turnbar?.map ?? 0, t }) : null;
     const a = (stat ? f?.rows.find((r) => r.key === stat)?.actions.find((x) => x.id === id) : null) ?? f?.actions.find((x) => x.id === id);
     const actor = this.subj?.actor;
     if (!a || !actor) return;

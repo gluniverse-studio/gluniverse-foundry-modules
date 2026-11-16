@@ -871,6 +871,9 @@ section("an attack-trait skill action can be rolled at every MAP step", () => {
     "a step press hands PF2e that step; the name rolls at the turn's own");
   ok(!/<button[^>]*>(?:(?!<\/button>)[\s\S])*<button/.test(sheet) && !/<button[^>]*>(?:(?!<\/button>)[\s\S])*<button/.test(tab), "no press is nested inside another");
   ok(/\.gph-ms \{[^}]*min-height: 18px[^}]*max-height: 18px/.test(css), "a MAP step states its own size");
+  /* a press resolves its action from every action, not from what the sheet shows */
+  const typed = K.finderModel({ ...m.sk, query: "treat wounds", mode: "encounter", map: 0, t }), bare = K.finderModel({ ...m.sk, query: "", mode: "encounter", map: 0, t }), every = K.finderModel({ ...m.sk, query: "", mode: "exploration", map: 0, t });
+  ok(typed.actions.some((a) => a.slug === "treat-wounds") && !bare.actions.some((a) => a.slug === "treat-wounds") && every.actions.some((a) => a.slug === "treat-wounds") && /useSkillAction\([\s\S]{0,420}K\.finderModel\(\{ \.\.\.m\.sk, query: "", sel: 0, mode: "exploration"/.test(host), "an action found by typing in an encounter is still pressable: the host looks it up among every action");
   /* a rule that lowers a skill's penalty: PF2e's skill actions consult nothing, so it is honoured here */
   const stat = (domains) => ({ domains, createRollOptions: () => ["self:level:5"] });
   const rule = (penalty, pass = true) => ({ penalty, predicate: { test: () => pass } });
