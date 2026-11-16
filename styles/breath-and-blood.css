@@ -1,0 +1,351 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Breath and Blood: the sheet panel, the Rest and Treat Wounds windows, the
+   healing dialogs and the chat card.
+
+   Ink and Signal (docs/adr/0012-ink-and-signal-core.md): core values aliased
+   as `--glbab-*` on the feature's own roots, never on :root. Hue only where it
+   means something: Stamina is breath (info blue), Hit Points are blood (red),
+   Resolve is the day's reserve (amber). The panel is an ink plate, so it reads
+   on pf2e's parchment sheet and on a dark one without knowing which.
+
+   Roots: `.application.glbab` (a window frame), `.glbab-panel` (on a sheet),
+   `.glbab-app` (a window's body), `.glbab-dialog` (a dialog's body),
+   `.glbab-card` (a chat message), `.glbab-dialog-frame` (a dialog frame).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:is(.glbab, .glbab-panel, .glbab-app, .glbab-dialog, .glbab-card, .glbab-dialog-frame) {
+  --glbab-ink-0: var(--gl-is-ink-0);
+  --glbab-ink-1: var(--gl-is-ink-1);
+  --glbab-ink-2: var(--gl-is-ink-2);
+  --glbab-ink-3: var(--gl-is-ink-3);
+  --glbab-ink-4: var(--gl-is-ink-4);
+  --glbab-ink-5: var(--gl-is-ink-5);
+  --glbab-text: var(--gl-is-text);
+  --glbab-paper: var(--gl-is-paper);
+  --glbab-dim: var(--gl-is-dim);
+  --glbab-faint: var(--gl-is-faint);
+  --glbab-steel: var(--gl-is-steel);
+  --glbab-line: var(--gl-is-line);
+  --glbab-line-strong: var(--gl-is-line-strong);
+  --glbab-hover: var(--gl-is-hover);
+  --glbab-selected: var(--gl-is-selected);
+  --glbab-shade: var(--gl-is-shade);
+
+  --glbab-breath: var(--gl-is-info);
+  --glbab-blood: var(--gl-is-red);
+  --glbab-resolve: var(--gl-is-amber);
+  --glbab-good: var(--gl-is-green);
+  --glbab-warn: var(--gl-is-ember);
+  --glbab-bad: var(--gl-is-red);
+  --glbab-tone: var(--glbab-paper);
+
+  --glbab-font: var(--gl-is-font);
+  --glbab-num: var(--gl-is-num);
+  --glbab-cut: var(--gl-is-cut);
+  --glbab-cut-sm: var(--gl-is-cut-sm);
+  --glbab-cut-xs: var(--gl-is-cut-xs);
+}
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) {
+  font-family: var(--glbab-font);
+  font-size: var(--gl-is-t-body);
+  line-height: 1.35;
+  color: var(--glbab-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) *,
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) *::before,
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) *::after {
+  box-sizing: border-box;
+}
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) [data-tone="good"] { --glbab-tone: var(--glbab-good); }
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) [data-tone="warn"] { --glbab-tone: var(--glbab-warn); }
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) [data-tone="bad"] { --glbab-tone: var(--glbab-bad); }
+:is(.glbab-panel, .glbab-app, .glbab-dialog, .glbab-card) [data-tone="info"] { --glbab-tone: var(--glbab-breath); }
+.glbab-card[data-tone="good"] { --glbab-tone: var(--glbab-good); }
+.glbab-card[data-tone="warn"] { --glbab-tone: var(--glbab-warn); }
+.glbab-card[data-tone="bad"] { --glbab-tone: var(--glbab-bad); }
+.glbab-card[data-tone="info"] { --glbab-tone: var(--glbab-breath); }
+
+/* ── Controls: Foundry and pf2e style buttons and inputs at element level ── */
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog) :is(button, input, select) {
+  font-family: var(--glbab-font);
+  font-size: var(--gl-is-t-body);
+  color: var(--glbab-text);
+  margin: 0;
+}
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog) select,
+:is(.glbab-panel, .glbab-app, .glbab-dialog) input[type="number"] {
+  height: 26px;
+  min-height: 0;
+  padding: 0 var(--gl-space-2, 6px);
+  background: var(--glbab-ink-2);
+  border: 1px solid var(--glbab-line-strong);
+  border-radius: var(--gl-is-radius);
+  box-shadow: none;
+}
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog) select option { background: var(--glbab-ink-2); color: var(--glbab-text); }
+
+:is(.glbab-panel, .glbab-app, .glbab-dialog) input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  accent-color: var(--glbab-paper);
+}
+
+/* `.gl-btn` declares no font size: every button here is sized by this sheet. */
+.glbab-btn.gl-btn {
+  font-size: var(--gl-is-t-body);
+  line-height: 1.2;
+  min-height: 26px;
+  height: auto;
+  width: auto;
+  padding: 4px 10px;
+  color: var(--glbab-text);
+  background: var(--glbab-ink-4);
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--glbab-line-strong);
+  clip-path: polygon(0 0, calc(100% - var(--glbab-cut-sm)) 0, 100% var(--glbab-cut-sm), 100% 100%, 0 100%);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--gl-d-quick) var(--gl-ease), box-shadow var(--gl-d-quick) var(--gl-ease);
+}
+.glbab-btn.gl-btn[data-tone] { box-shadow: inset 0 0 0 1px var(--glbab-tone), inset 3px 0 0 var(--glbab-tone); }
+.glbab-btn.gl-btn:hover:not(:disabled) { background: var(--glbab-ink-5); }
+.glbab-btn.gl-btn:disabled { opacity: var(--gl-is-disabled); cursor: not-allowed; }
+:is(.glbab-panel, .glbab-app, .glbab-dialog) :is(select, input):disabled { opacity: var(--gl-is-disabled); cursor: not-allowed; }
+.glbab-btn.gl-btn:focus-visible { outline: var(--gl-is-focus-ring); outline-offset: var(--gl-is-focus-offset); }
+
+/* ── Shared pieces ───────────────────────────────────────────────────────── */
+
+.glbab-eyebrow,
+.glbab-gm-tag,
+.glbab-meter-label,
+.glbab-rest-head,
+.glbab-field > span {
+  font-size: var(--gl-is-t-meta);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--glbab-faint);
+}
+
+.glbab-note,
+.glbab-lede,
+.glbab-why {
+  margin: 0;
+  font-size: var(--gl-is-t-meta);
+  color: var(--glbab-dim);
+}
+.glbab-lede { font-size: var(--gl-is-t-body); color: var(--glbab-dim); }
+.glbab-note[data-tone] { color: var(--glbab-tone); }
+
+.glbab-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  font-size: var(--gl-is-t-meta);
+  color: var(--glbab-faint);
+  background: var(--glbab-ink-2);
+  box-shadow: inset 0 0 0 1px var(--glbab-line);
+  clip-path: polygon(0 0, calc(100% - var(--glbab-cut-xs)) 0, 100% var(--glbab-cut-xs), 100% 100%, 0 100%);
+}
+.glbab-chip.is-on { color: var(--glbab-paper); background: var(--glbab-ink-4); box-shadow: inset 0 0 0 1px var(--glbab-line-strong); }
+.glbab-chip.is-on[data-tone] { color: var(--glbab-tone); box-shadow: inset 0 0 0 1px var(--glbab-tone); }
+
+.glbab-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.glbab-field select { width: 100%; }
+
+.glbab-mini { display: inline-flex; align-items: center; gap: 5px; font-size: var(--gl-is-t-meta); color: var(--glbab-dim); }
+.glbab-mini select { height: 24px; max-width: 128px; }
+
+.glbab-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--glbab-dim); }
+.glbab-toggle-read { color: var(--glbab-faint); font-size: var(--gl-is-t-meta); }
+
+.glbab-numeric, .glbab-meter-num { font-family: var(--glbab-num); font-variant-numeric: tabular-nums; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE SHEET PANEL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.glbab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 10px 12px 12px;
+  background: var(--glbab-ink-1);
+  box-shadow: inset 0 0 0 1px var(--glbab-line-strong);
+  clip-path: polygon(0 0, calc(100% - var(--glbab-cut)) 0, 100% var(--glbab-cut), 100% 100%, 0 100%);
+}
+
+.glbab-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.glbab-head .glbab-eyebrow { color: var(--glbab-paper); }
+.glbab-role { margin-left: auto; font-size: var(--gl-is-t-meta); color: var(--glbab-steel); }
+
+.glbab-pools { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.glbab-meter { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 6px; min-width: 0; }
+.glbab-meter[data-pool="sp"] { --glbab-tone: var(--glbab-breath); }
+.glbab-meter[data-pool="hp"] { --glbab-tone: var(--glbab-blood); }
+.glbab-meter[data-pool="rp"] { --glbab-tone: var(--glbab-resolve); }
+.glbab-meter-num { font-size: var(--gl-is-t-meta); color: var(--glbab-faint); white-space: nowrap; }
+.glbab-meter-num b { font-size: var(--gl-is-t-title); font-weight: 600; color: var(--glbab-text); margin-right: 2px; }
+.glbab-meter-max { color: var(--glbab-faint); }
+.glbab-meter-temp { margin-left: 4px; color: var(--glbab-breath); }
+.glbab-meter-bar { grid-column: 1 / -1; height: 5px; background: var(--glbab-ink-3); box-shadow: inset 0 0 0 1px var(--glbab-line); }
+.glbab-meter-fill { display: block; height: 100%; background: var(--glbab-tone); transition: width var(--gl-d-brisk) var(--gl-ease); }
+
+.glbab-pips { grid-column: 1 / -1; display: flex; gap: 3px; height: 5px; }
+.glbab-pip { flex: 1; background: var(--glbab-ink-3); box-shadow: inset 0 0 0 1px var(--glbab-line); }
+.glbab-pip.is-on { background: var(--glbab-resolve); box-shadow: none; }
+
+.glbab-ticks { display: flex; flex-wrap: wrap; gap: 4px; }
+.glbab-row { display: flex; align-items: center; gap: 8px; }
+.glbab-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.glbab-gm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--glbab-line-strong);
+}
+.glbab-gm-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.glbab-gm-row .glbab-field { flex: 1 1 140px; }
+.glbab-direct { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.glbab-direct .glbab-num { width: 64px; }
+.glbab-panel.is-one { gap: 6px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WINDOWS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.application.glbab { --gl-accent: var(--gl-is-paper); }
+.application.glbab .window-content { padding: 0; background: var(--glbab-ink-1); color: var(--glbab-text); }
+
+.glbab-app { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; }
+
+.glbab-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--glbab-line-strong); }
+.glbab-tab {
+  appearance: none;
+  height: 28px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--glbab-faint);
+  font-size: var(--gl-is-t-lead);
+  cursor: pointer;
+  transition: color var(--gl-d-quick) var(--gl-ease), border-color var(--gl-d-quick) var(--gl-ease);
+}
+.glbab-tab:hover { color: var(--glbab-text); background: var(--glbab-hover); }
+.glbab-tab.is-on { color: var(--glbab-paper); border-bottom-color: var(--glbab-paper); }
+
+.glbab-foot { display: flex; justify-content: flex-end; gap: 6px; padding-top: 8px; border-top: 1px solid var(--glbab-line); }
+
+/* Rest */
+.glbab-rest-head,
+.glbab-rest-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) 150px minmax(170px, 1.4fr) 116px;
+  align-items: center;
+  gap: 8px;
+}
+.glbab-rest-head { padding: 0 8px; }
+.glbab-rest-rows { display: flex; flex-direction: column; gap: 3px; }
+.glbab-rest-row { padding: 6px 8px; background: var(--glbab-ink-2); box-shadow: inset 0 0 0 1px var(--glbab-line); }
+.glbab-rest-row:hover { background: var(--glbab-ink-3); }
+.glbab-rest-who { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; cursor: pointer; }
+.glbab-rest-name { font-size: var(--gl-is-t-lead); color: var(--glbab-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glbab-rest-pools { display: flex; gap: 10px; font-size: var(--gl-is-t-body); }
+.glbab-rest-pools i { font-style: normal; color: var(--glbab-faint); }
+.glbab-rest-pools [data-pool="sp"] { color: var(--glbab-breath); }
+.glbab-rest-pools [data-pool="hp"] { color: var(--glbab-blood); }
+.glbab-rest-pools [data-pool="rp"] { color: var(--glbab-resolve); }
+.glbab-rest-breather { display: flex; flex-direction: column; gap: 3px; }
+.glbab-rest-night select { width: 100%; }
+
+/* Setup */
+.glbab-setup { display: flex; flex-direction: column; gap: 10px; }
+.glbab-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--glbab-ink-2);
+  box-shadow: inset 3px 0 0 var(--glbab-tone), inset 0 0 0 1px var(--glbab-line);
+}
+.glbab-status b { color: var(--glbab-tone); font-size: var(--gl-is-t-lead); }
+.glbab-status .glbab-btn { margin-left: auto; }
+.glbab-status-label { color: var(--glbab-dim); }
+.glbab-dials { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; }
+.glbab-dial { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--glbab-line); color: var(--glbab-dim); }
+.glbab-dial b { font-weight: 600; color: var(--glbab-text); text-align: right; }
+
+/* Treat Wounds */
+.glbab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: end; }
+.glbab-patients { display: flex; flex-direction: column; gap: 3px; }
+.glbab-patient {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 96px 104px minmax(120px, 1.2fr) 22px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--glbab-ink-2);
+  box-shadow: inset 3px 0 0 var(--glbab-tone), inset 0 0 0 1px var(--glbab-line);
+}
+.glbab-patient[data-kind="paid"] { --glbab-tone: var(--glbab-resolve); }
+.glbab-patient[data-kind="surgeon"] { --glbab-tone: var(--glbab-good); }
+.glbab-patient[data-kind="unpaid"] { --glbab-tone: var(--glbab-steel); }
+.glbab-patient-name { font-size: var(--gl-is-t-lead); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glbab-patient-preview { font-size: var(--gl-is-t-meta); color: var(--glbab-dim); }
+.glbab-x {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--glbab-faint);
+  font-size: var(--gl-is-t-title);
+  line-height: 1;
+  cursor: pointer;
+}
+.glbab-x:hover { color: var(--glbab-text); background: var(--glbab-hover); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DIALOGS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.application.glbab-dialog-frame .window-content { background: var(--glbab-ink-1); color: var(--glbab-text); }
+.glbab-dialog { display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; min-width: 340px; }
+.glbab-dialog .glbab-why { align-self: center; }
+.glbab-dialog:has(select[name="kind"] option[value="spent"]:checked) .glbab-paid-only { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CHAT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.glbab-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--glbab-ink-1);
+  box-shadow: inset 3px 0 0 var(--glbab-tone), inset 0 0 0 1px var(--glbab-line-strong);
+  clip-path: polygon(0 0, calc(100% - var(--glbab-cut-sm)) 0, 100% var(--glbab-cut-sm), 100% 100%, 0 100%);
+}
+.glbab-card-head { font-size: var(--gl-is-t-lead); font-weight: 600; color: var(--glbab-paper); }
+.glbab-card-row { display: flex; flex-direction: column; gap: 2px; }
+.glbab-card-name { font-size: var(--gl-is-t-meta); letter-spacing: 0.06em; text-transform: uppercase; color: var(--glbab-faint); }
+.glbab-card-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
+.glbab-card-lines li { font-size: var(--gl-is-t-body); color: var(--glbab-dim); }
+.glbab-card-lines li:first-child { color: var(--glbab-text); }
+.glbab-card-foot { font-size: var(--gl-is-t-meta); color: var(--glbab-faint); border-top: 1px solid var(--glbab-line); padding-top: 4px; }

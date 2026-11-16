@@ -231,6 +231,8 @@ rather than at the end.
 | roleplay-chat      | rp.                          | null              | —               | off     |
 | diorama            | dio.                         | null              | —               | off     |
 | pf2e-rail          | ph.                          | pf2e              | —               | off     |
+| level-ground       | lvg.                         | pf2e              | —               | off     |
+| breath-and-blood   | bab.                         | pf2e              | —               | off     |
 
 `⤷ <id>` in the requires column is a `requiresFeature` edge (a sibling suite
 feature that must be enabled), not a `requires` module id.

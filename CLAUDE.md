@@ -99,8 +99,9 @@ etc. (full matrix in `docs/FEATURE_CONTRACT.md`).
   docs/adr/0008-stage-theatre-console.md, the Mythic GME panel,
   docs/adr/0009-mythic-gme-skin.md, Flatfinder's ink skin,
   docs/adr/0010-flatfinder-skin.md, Destiny Dice's skin,
-  docs/adr/0011-destiny-dice-skin.md, and the PF2e HUD's skin,
-  docs/adr/0013-pf2e-rail-skin.md — each lives only under its features' own
+  docs/adr/0011-destiny-dice-skin.md, the PF2e HUD's skin,
+  docs/adr/0013-pf2e-rail-skin.md, and the Level Ground and Breath and Blood
+  skins, docs/adr/0014-variant-rules-skins.md — each lives only under its features' own
   roots and never on `:root`); `styles/gl-tokens.css` is the single source of truth and
   `styles/gl-motion.css` the single keyframe pool. Use the `--gl-*` tokens and
   the `.gl-*` utilities. The non-negotiables:
@@ -1947,6 +1948,101 @@ call; never decide one in the host alone. Headless Chrome runs slowly enough
 that the frame budget sheds the light, so a live capture there shows nothing
 unless the probe overrides `light.ladder.allows`. To see it: `node tools/pf2e-rail-preview.mjs && node
 tools/preview-server.mjs`. See `docs/PF2E_RAIL.md`.
+
+**When touching Breath and Blood** (`features/breath-and-blood/`,
+`styles/breath-and-blood.css`, `lang/breath-and-blood.en.json`,
+`packs/_source/breath-and-blood.json`, or Lasting Wounds in
+`pf2e-variant-rules/wounds.mjs`), re-run its check, plus
+`pf2e-variant-rules-check` if `wounds.mjs` moved. Everything it covers fails
+silently:
+
+```bash
+node tools/breath-and-blood-check.mjs
+```
+
+Zero problems required. Four things are worth knowing before you change it.
+
+**`rules.mjs` is the rule.** Every procedure is pure, state in and state out,
+and the check runs the rules' 102 vectors against it. The Foundry glue calls
+those same functions, so never decide a number in the glue.
+
+**Healing is written by pf2e with `final: true`**, which skips IWR *and* every
+`healing-received` modifier, so the wrapper adds those first. A bar drag
+(`final`, no item, no options) is passed through untouched. **Drained takes HP
+twice in pf2e** (`LoseHitPoints` `onCreate` and, with `reevaluateOnUpdate`,
+`preUpdate`), and both are wrapped so the correction lands in pf2e's own write.
+
+**Nothing happens while pf2e's Stamina variant is off**, and nothing turns it on
+but the GM's click. NPC-type pools live in the `bab.sp`/`bab.rp` flags, a
+character's at pf2e's own paths.
+
+**pf2e's own actions are redirected on two roads.** The legacy functions
+(`game.pf2e.actions.treatWounds`, the sheet's buttons) are wrapped, and the
+Action objects (`game.pf2e.actions.get("treat-wounds").use`, which inline
+`[[/act]]` links call) are shadowed with an async `use`. Miss either and that
+road heals by the printed rule. Lasting Wounds must stand down while this
+feature is on (`lastingWoundsActive`), and the check pins it.
+
+To see it: `node tools/breath-and-blood-preview.mjs && node tools/preview-server.mjs 8962`,
+then `/.preview/breath-and-blood.html`
+(`only=panel|rest|setup|treat|battle|heal|holdon|chat`, `fonts=1`). See
+`docs/BREATH_AND_BLOOD.md`.
+
+**When touching Level Ground** (`features/level-ground/`, `styles/level-ground.css`,
+`lang/level-ground.en.json`, `packs/_source/level-ground.json`), re-run its
+check. Everything it covers fails silently: a rules port one line off is a
+plausible number, a Strip that keeps no record cannot be undone, a Reach that
+reads the wrong rank looks like an ordinary penalty:
+
+```bash
+node tools/level-ground-check.mjs
+```
+
+Zero problems required. It runs the rules' own test vectors (copied into
+`tools/fixtures/level-ground/`) against `rules.mjs`, a line-for-line port of
+the rules repo's `reference/core.js`. Four things are worth knowing before you
+change it.
+
+**Every level is the printed level** (`_source.system.details.level.value`).
+PF2e's prepared level already includes an elite or weak step, and the rules
+read every level before it. Proficiency itself is PF2e's own Proficiency
+without Level (`proficiencyVariant`, modifiers −2/2/4/6/8). The feature asks
+the GM to turn it on and never flips it unasked.
+
+**Strip rewrites stored data and keeps what it overwrote.** Every value is kept
+in the `lvg.strip` flag as `[path, value]` pairs, so Unstrip restores the
+printed stat block exactly, and the flag is what refuses a second Strip. A
+level-as-proficiency rule element is rewritten to +2, not 0: PF2e stacks the
+PWoL untrained −2 (a proficiency penalty) beside a same-type bonus, so a 0
+leaves the rule's effect unchanged. A role's Hit Points are written in two
+updates (max, then value), or `_preUpdate` clamps the value against the old
+maximum. Both are taken from the total before Breath and Blood halves a two-pool
+NPC (`maxHPOf`), and the value is written with `allowHPOverage`, since pf2e's
+clamp reads the halved maximum. Massive damage is matched to its HP update by
+uuid: a chat card applies damage through a contextual clone, and
+`preUpdateActor` sees the live document.
+
+**Task ranks ride roll options.** A converted check carries
+`level-ground:task-rank:N` (and `level-ground:dc-level:L`) in its inline
+`options:`, and Reach reads them in the `Check.roll` wrapper. Break Away is
+never reached. Outmatched removes PF2e's incapacitation step only where it
+can read the effect's level.
+
+**The pure modules reach no world** (`rules.mjs`, `logic.mjs`, `constants.mjs`,
+`reference.mjs`, `view.mjs`). The check imports them under Node, and the preview
+draws the window, the tracker strip, the sheet marker and the chat cards from
+them: `node tools/level-ground-preview.mjs && node tools/preview-server.mjs 8961`,
+then `/.preview/level-ground.html` (`view=window|tracker|sheet|chat`,
+`tab=threat|breakAway|convert|stripText|setup`). Flatfinder also hides PF2e's
+`section.metrics` and wraps `Check.roll` for incapacitation; the Setup tab
+warns while it, or pf2e-flatten, is on. See `docs/LEVEL_GROUND.md`.
+
+The compendium packs of both variant rule sets are compiled from
+`packs/_source/<pack>.json` by `node tools/build-variant-packs.mjs` (it uses the
+`classic-level` package inside a Foundry install; `--foundry=<resources/app>`).
+Run it with the Foundry server stopped and commit the LevelDB folder it writes.
+A running server also rewrites `packs/flatfinder`'s LevelDB files; never commit
+those.
 
 **When touching the shared frame budget or any feature's shedding**
 (`core/budget.mjs`, `core/gl-surfaces.mjs`, `core/pan.mjs`, any `SHED_ORDER`,

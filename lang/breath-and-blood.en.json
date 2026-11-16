@@ -1,0 +1,349 @@
+{
+  "GLBAB": {
+    "title": "Breath and Blood",
+    "control": {
+      "rest": "Breath and Blood: rest",
+      "treat": "Breath and Blood: Treat Wounds"
+    },
+    "settings": {
+      "maxResolve": {
+        "name": "Maximum Resolve Points",
+        "hint": "Resolve Points every character has each day (2 to 6). Companions keep 3, or this number if it is lower; rivals keep 2. It sets the length of the adventuring day."
+      },
+      "resolveByLevel": {
+        "name": "Resolve by level",
+        "hint": "4 Resolve Points through 8th level and 3 from 9th level, whatever the maximum above says."
+      },
+      "havens": {
+        "name": "Havens",
+        "hint": "Adds the haven to the kinds of night: a night at an inn, a hall or a friendly hearth restores twice the Hit Points."
+      },
+      "grimWounds": {
+        "name": "Grim Wounds",
+        "hint": "Persistent bleed damage and damage taken while unconscious skip Stamina Points. Falling damage can't be recognised: apply it with Direct damage on the sheet."
+      },
+      "generousSupplies": {
+        "name": "Generous Supplies",
+        "hint": "Healing from every item (potions, scrolls, wands, staves) is spent healing and costs the patient nothing."
+      },
+      "recurringRivals": {
+        "name": "Recurring Rivals",
+        "hint": "Lets the GM mark an NPC as a rival with two pools and 2 Resolve Points."
+      },
+      "lingeringWounds": {
+        "name": "Lingering Wounds",
+        "hint": "A breather that would end the wounded condition lowers it by 1 instead, to a minimum of 1. A night still ends it."
+      },
+      "levelGroundDCs": {
+        "name": "Level Ground DCs",
+        "hint": "Treat Wounds and Battle Medicine use DCs 14, 16, 18 and 20, and Assurance gives 10 + the proficiency bonus without level. Automatic follows the Level Ground feature.",
+        "choice": {
+          "auto": "Automatic",
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "healingPrompt": {
+        "name": "Ask when healing is applied",
+        "hint": "Who sees the spent / paid dialog when healing is applied to a creature with two pools. When unsure: only for a source the module can't classify, or an infused item.",
+        "choice": {
+          "always": "Always",
+          "unsure": "When unsure",
+          "never": "Never"
+        }
+      },
+      "redirectSystemActions": {
+        "name": "Replace the system's actions",
+        "hint": "pf2e's Take a Breather, Steel Your Resolve, Treat Wounds and Encouraging Words open this variant's commands instead. The rules say the system's breather and Steel Your Resolve must not be used."
+      }
+    },
+    "pool": {
+      "sp": "Stamina",
+      "hp": "Hit Points",
+      "rp": "Resolve"
+    },
+    "role": {
+      "twoPools": "Two pools",
+      "companion": "Companion",
+      "rival": "Rival",
+      "onePool": "One pool"
+    },
+    "panel": {
+      "shares": "Shares pools with {name}.",
+      "dying": "Dying {value}",
+      "wounded": "Wounded {value}",
+      "declines": "Decline paid healing",
+      "declining": "Declines paid healing",
+      "paying": "Pays for paid healing"
+    },
+    "tick": {
+      "caughtBreath": "Caught breath",
+      "strengthLent": "Strength lent",
+      "ewImmune": "Encouraged",
+      "fieldSurgeon": "Field Surgeon used",
+      "steel": "Steel Your Resolve used"
+    },
+    "action": {
+      "catch": "Catch Your Breath",
+      "steel": "Steel Your Resolve",
+      "bind": "Bind Your Own Wounds",
+      "holdOn": "Hold On",
+      "lend": "Lend Strength",
+      "words": "Encouraging Words",
+      "treat": "Treat Wounds",
+      "battle": "Battle Medicine",
+      "rest": "Rest"
+    },
+    "actionHint": {
+      "catch": "1 action, 1 Resolve Point, once per breather: regain half your maximum Stamina Points or 5.",
+      "steel": "Once per day: Catch Your Breath without spending a Resolve Point.",
+      "bind": "End a breather spent tending your own wounds: 1 Resolve Point for a quarter of your maximum Hit Points.",
+      "holdOn": "Free action, 1 Resolve Point: the recovery check is a success without a roll.",
+      "lend": "1 action (none in a shared breather): give your targeted ally 1 Resolve Point.",
+      "words": "1 action: your targeted ally regains 5 + twice your level Stamina Points.",
+      "treat": "Open Treat Wounds with this character as the healer.",
+      "battle": "Open Battle Medicine with this character as the healer.",
+      "rest": "Open the Rest window: end a breather, or a night."
+    },
+    "refuse": {
+      "noHeal": "{name} can't regain Hit Points right now.",
+      "caught": "Already caught their breath this breather.",
+      "noHP": "Needs at least 1 Hit Point.",
+      "noRP": "No Resolve Points.",
+      "notDying": "Not dying.",
+      "self": "The two share one set of Resolve Points.",
+      "companion": "A companion can't Lend Strength.",
+      "full": "{name} is at maximum Resolve Points.",
+      "lent": "{name} has already received Lend Strength since their last night.",
+      "fullHP": "Already at maximum Hit Points.",
+      "immune": "{name} is immune to Encouraging Words until their next night.",
+      "notTwoPools": "{name} has one pool: use the printed rules.",
+      "noFeat": "Needs the feat {feat}.",
+      "steelUsed": "Steel Your Resolve is used for today.",
+      "noTarget": "Target an ally first.",
+      "notOwner": "You don't own {name}.",
+      "variantOff": "The Stamina variant is off: Breath and Blood does nothing until the GM turns it on.",
+      "noHealer": "Choose a healer you own.",
+      "noPatients": "Target or select the patients.",
+      "tooMany": "This treatment takes at most {limit} patients.",
+      "bmImmune": "Immune to this healer's Battle Medicine for today.",
+      "noRank": "The healer isn't trained in Medicine."
+    },
+    "gm": {
+      "tag": "GM",
+      "role": "Pools",
+      "shares": "Shares with (eidolon)",
+      "sharesNone": "Nobody",
+      "returned": "Returned from death",
+      "returnedHint": "Set Resolve Points and Stamina Points to 0. Set Hit Points as the effect states.",
+      "direct": "Direct damage",
+      "directHint": "Damage to temporary Hit Points, then Hit Points, skipping Stamina Points: falling (Grim Wounds), damage that can't be healed, a healer's price.",
+      "directAmount": "Amount"
+    },
+    "rest": {
+      "title": "Breath and Blood: rest",
+      "tab": {
+        "rest": "Rest",
+        "setup": "Setup"
+      },
+      "none": "No character with two pools that you own.",
+      "lede": "End a breather after 10 uninterrupted minutes of rest in one place. A night is chosen per character.",
+      "col": {
+        "who": "Character",
+        "pools": "SP · HP · RP",
+        "breather": "During the breather",
+        "night": "Night"
+      },
+      "endBreather": "End breather",
+      "endBreatherHint": "Wake, regain Stamina Points, clear caught breath and end or lower wounded, for the ticked characters.",
+      "night": "Night's rest",
+      "nightHint": "Run the system's Rest for the Night, then set Resolve Points by the kind of night and end wounded.",
+      "lendNone": "Lend to nobody",
+      "unconscious": "Unconscious",
+      "bind": "Bind own wounds",
+      "lend": "Lend"
+    },
+    "night": {
+      "rest": "Night's rest",
+      "rough": "Rough night",
+      "haven": "Haven"
+    },
+    "setup": {
+      "off": "The pf2e Stamina variant is off. Breath and Blood changes nothing until the GM turns it on.",
+      "yes": "On",
+      "no": "Off",
+      "stamina": "pf2e Stamina variant",
+      "enable": "Turn it on",
+      "later": "Not now",
+      "lasting": "Lasting Wounds (PF2e Variant Rules) is switched on. Breath and Blood replaces it and it applies nothing while this feature runs; switch it off in the Control Center.",
+      "lede": "Breath and Blood builds on pf2e's Stamina variant setting and never turns it on by itself.",
+      "fillHint": "{count} characters have 0 Stamina and 0 Resolve Points, as they do just after the variant is turned on.",
+      "fill": "Fill their pools",
+      "settings": "Settings",
+      "byLevel": "By level",
+      "promptTitle": "Breath and Blood",
+      "promptBody": "Breath and Blood needs pf2e's Stamina variant, which is off. Turn it on now? Every character is prepared again; their Stamina and Resolve Points start at 0 until filled from the Setup tab of the Rest window."
+    },
+    "treat": {
+      "title": "Treat Wounds",
+      "kind": {
+        "treat": "Treat Wounds",
+        "battle": "Battle Medicine"
+      },
+      "healer": "Healer",
+      "dc": "DC",
+      "dcOption": "{rank}: DC {dc}, +{added}",
+      "surgeon": "Field Surgeon",
+      "surgeonNone": "Name nobody",
+      "surgeonUsed": "Field Surgeon is used for today.",
+      "surgeonBattle": "Field Surgeon applies to Treat Wounds only.",
+      "assurance": "Assurance (result {result})",
+      "noPatients": "Target or select the patients, then press From targets.",
+      "lede": "Each patient decides before the check: a patient who hasn't declined pays 1 Resolve Point. One check and one roll for all ({limit} at most). No immunity.",
+      "ledeBattle": "The patient decides before the check. The patient is then immune to this healer's Battle Medicine for 1 day, paid or not.",
+      "fromTargets": "From targets",
+      "run": "Treat",
+      "runBattle": "Use Battle Medicine",
+      "choice": {
+        "pay": "Pays 1 RP",
+        "decline": "Declines"
+      },
+      "previewSurgeon": "Field Surgeon: pays nothing, at least {minimum} HP",
+      "previewPaid": "At least {minimum} HP",
+      "drop": "Remove this patient",
+      "healRoll": "{kind}: {degree}"
+    },
+    "rank": {
+      "1": "Trained",
+      "2": "Expert",
+      "3": "Master",
+      "4": "Legendary"
+    },
+    "degree": {
+      "criticalFailure": "critical failure",
+      "failure": "failure",
+      "success": "success",
+      "criticalSuccess": "critical success"
+    },
+    "kind": {
+      "spent": "Spent: a daily resource",
+      "paid": "Paid: 1 Resolve Point"
+    },
+    "heal": {
+      "title": "Healing {name}",
+      "lede": "{name} is about to regain {amount}.",
+      "kind": "Kind of healing",
+      "patient": "{name}'s choice",
+      "paidRule": "Paid healing restores Hit Points only, at least {minimum}. {rp} Resolve Points now.",
+      "spentRule": "Spent healing costs nothing; what is left after Hit Points restores Stamina Points.",
+      "repeating": "This healing repeats: the choice covers it until it ends or the next breather (1 minute for a permanent source).",
+      "apply": "Apply",
+      "cancel": "Cancel"
+    },
+    "why": {
+      "treatWounds": "Treat Wounds is paid healing.",
+      "battleMedicine": "Battle Medicine is paid healing.",
+      "embedded": "A spell from a scroll, wand or staff is paid healing.",
+      "generous": "Generous Supplies: healing from items is spent.",
+      "cantrip": "A cantrip is paid healing.",
+      "focus": "A focus spell is paid healing.",
+      "ritual": "A ritual is spent healing.",
+      "slot": "A spell from a slot is spent healing.",
+      "innateLimited": "An innate spell with uses per day is spent healing.",
+      "atWill": "Healing usable at will is paid healing.",
+      "unknownSpell": "This spell's casting can't be read: choose the kind.",
+      "infused": "Infused: made at today's preparations, so spent. Change it for an item made otherwise.",
+      "item": "An item is paid healing.",
+      "perDay": "An ability with uses per day is spent healing.",
+      "unknown": "The source of this healing isn't known: choose the kind.",
+      "repeating": "Healing that repeats: one decision for the whole effect.",
+      "covered": "Covered by the payment made when the effect began."
+    },
+    "unpaid": {
+      "noHeal": "Unpaid: this creature can't regain Hit Points.",
+      "declined": "Unpaid: the patient declined.",
+      "noRP": "Unpaid: no Resolve Points.",
+      "fullHP": "Unpaid: already at maximum Hit Points."
+    },
+    "holdOn": {
+      "title": "{name}: recovery check",
+      "lede": "{name} is dying {dying} with {rp} Resolve Points.",
+      "rule": "Hold On: spend 1 Resolve Point, make no roll; the check is a success and dying drops by 1.",
+      "use": "Hold On (1 RP)",
+      "roll": "Roll the check"
+    },
+    "direct": {
+      "lede": "Direct damage to {name}: temporary Hit Points, then Hit Points. Stamina Points are skipped."
+    },
+    "card": {
+      "heal": "{name} is healed",
+      "oneHP": "At 0 Hit Points: exactly 1 Hit Point.",
+      "kind": {
+        "spent": "Spent healing, {rolled} rolled.",
+        "paid": "Paid healing, {rolled} rolled.",
+        "covered": "Covered installment, {rolled} rolled."
+      },
+      "restored": "{hp} HP, {sp} SP restored.",
+      "minimum": "The minimum of {minimum} applied.",
+      "lost": "{lost} lost.",
+      "rpSpent": "{rp} Resolve Point spent.",
+      "endedDying": "Dying ends; wounded rises by 1.",
+      "catchTitle": "{name} catches their breath",
+      "catch": "+{gained} Stamina: {sp} / {max}.",
+      "steel": "Steel Your Resolve: no Resolve Point spent.",
+      "surge": "Surge: one Stride or Strike as part of this action.",
+      "holdOnTitle": "{name} holds on",
+      "holdOn": "No roll: the recovery check succeeds. Dying {dying}.",
+      "stabilized": "Dying ends; unconscious at 0 Hit Points. Wounded {wounded}.",
+      "lendTitle": "{giver} lends strength to {taker}",
+      "lend": "{taker} has {rp} / {max} Resolve Points.",
+      "lendFree": "During a shared breather: no action.",
+      "wordsTitle": "{speaker} encourages {ally}",
+      "words": "+{gained} Stamina: {sp} / {max}.",
+      "wordsImmune": "Immune to Encouraging Words until their next night.",
+      "breatherTitle": "{name} ends a breather",
+      "bind": "Bound their own wounds: +{hp} HP, 1 Resolve Point.",
+      "woke": "Wakes with 1 Hit Point.",
+      "spRestored": "Stamina full: {sp} / {max}.",
+      "noSP": "At 0 Hit Points: no Stamina Points.",
+      "woundedLower": "Wounded lowers to {value}.",
+      "woundedGone": "Wounded ends.",
+      "woundedStays": "Wounded {value} stays: no Hit Points regained since the last encounter, and not at maximum.",
+      "nightTitle": "{name}'s night",
+      "night": {
+        "rest": "A night's rest.",
+        "rough": "A rough night: 2 Resolve Points.",
+        "haven": "A haven: twice the Hit Points."
+      },
+      "haven": "+{hp} HP from the haven.",
+      "nightHP": "+{hp} HP.",
+      "nightRP": "{rp} / {max} Resolve Points.",
+      "returnedTitle": "{name} returns from death",
+      "returned": "0 Resolve Points, 0 Stamina Points.",
+      "directTitle": "Direct damage to {name}",
+      "direct": "{amount} damage past Stamina: {hp} HP.",
+      "assurance": "Assurance: {total} against DC {dc}, a {degree}.",
+      "check": "Medicine check: {degree}. Healing roll {rolled}.",
+      "noCheck": "Nobody paid: no check was made.",
+      "medicine": {
+        "treat": "{healer} treats wounds",
+        "battle": "{healer} uses Battle Medicine"
+      },
+      "bmImmune": "Immune to {healer}'s Battle Medicine for 1 day.",
+      "surgeon": "Field Surgeon: no Resolve Point."
+    },
+    "feat": {
+      "steel": "Steel Your Resolve",
+      "words": "Encouraging Words",
+      "battle": "Battle Medicine"
+    },
+    "effect": {
+      "words": "Encouraging Words (immune until the next night)",
+      "battle": "Battle Medicine immunity ({healer})"
+    },
+    "notify": {
+      "noGM": "No GM is connected to carry this out.",
+      "sent": "Sent to the GM."
+    }
+  }
+}

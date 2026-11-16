@@ -40,3 +40,6 @@ import "./theatre/index.mjs";
 import "./roleplay-chat/index.mjs";
 import "./diorama/index.mjs";
 import "./pf2e-rail/index.mjs";
+// Two independent variant rule sets by the owner; each runs alone or beside the other.
+import "./level-ground/index.mjs";
+import "./breath-and-blood/index.mjs";
