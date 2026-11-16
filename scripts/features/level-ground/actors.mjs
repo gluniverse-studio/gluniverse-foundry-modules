@@ -16,7 +16,7 @@
 import { SUITE_ID } from "../../core/const.mjs";
 import { MODIFIER_LABEL as FLATTEN_LABEL, MODIFIER_SLUG as FLATTEN_SLUG } from "../pf2e-flatten/constants.js";
 import { PREP, flagPath as babFlagPath, poolValues } from "../breath-and-blood/actor.mjs";
-import { FLAG as BAB_FLAG } from "../breath-and-blood/constants.mjs";
+import { FLAG as BAB_FLAG, OPTION as BAB_OPTION } from "../breath-and-blood/constants.mjs";
 import { FLAGS, flagPath } from "./constants.mjs";
 import {
   hasBattleForm,
@@ -196,7 +196,8 @@ export async function setRole(actor, role) {
   const valueUpdate = { "system.attributes.hp.value": value };
   const newPools = PREP.get(actor);
   if (spFull && newPools?.twoPool) valueUpdate[babFlagPath(BAB_FLAG.sp)] = newPools.maxSP;
-  await actor.update(valueUpdate, { allowHPOverage: true });
+  // Tagged as Breath and Blood's own write, so a role change does not read as healing (mended).
+  await actor.update(valueUpdate, { allowHPOverage: true, [BAB_OPTION]: "role" });
 
   // Markers: drop the old ones, add the new role's.
   const old = actor.items.filter((i) => flagOf(i, FLAGS.roleMarker));
