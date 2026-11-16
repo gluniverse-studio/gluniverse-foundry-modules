@@ -286,6 +286,18 @@ function gm(art, o = {}) {
         { id: "sweep", name: "Sweeping Hook", cost: 2 },
         { id: "menace", name: "Brutal Menace", cost: 1 },
       ],
+      /* invented for the page: an ogre this well defended is nobody's ogre */
+      stat: {
+        iwr: [{ k: "immune", text: "fear" }, { k: "weak", text: "cold iron 5" }, { k: "resist", text: "physical 3 (except bludgeoning)" }],
+        passives: [
+          { id: "ferocity", name: "Thick Hide", text: "The first time each round the ogre takes physical damage, it reduces that damage by 3." },
+          { id: "stench", name: "Reeking Aura", text: "10 feet. A creature that enters the aura or starts its turn there attempts a DC 18 Fortitude save or is sickened 1." },
+          { id: "grip", name: "Crushing Grip", text: "A creature the ogre has grabbed takes 1d6 bludgeoning damage at the start of each of its turns." },
+        ],
+        senses: ["Low-light vision", "Scent (imprecise) 30 ft"],
+        speeds: ["Land 25 ft", "Climb 15 ft"],
+        languages: ["Jotun", "Common"],
+      },
     },
     foes: { foes: FOES(art), selected: "ogre" },
     /* the GM sees every defence: the finder is the creature's own skill actions against the targeted PC */
@@ -464,6 +476,7 @@ export const DRAWER_BODIES = {
     null, null, null, null, null, null, null] }, t) }),
   foes: (V, t, art, model) => ({ title: t("GLRAIL.drawer.foes"), note: String(model.foes?.foes?.length ?? 0), body: V.DLIST({ rows: (model.foes?.foes ?? []).map((f) => ({
     key: `foe:${f.id}`, act: true, name: f.name, icon: f.img, meta: `Level ${f.level} · ${f.disp}`, n: f.hp ? `${f.hp[0]}/${f.hp[1]}` : null })) }, t) }),
+  statblock: (V, t, art, model) => (model.creature ? { title: model.creature.name, note: t("GLRAIL.drawer.statblock"), wide: true, body: V.STATBLOCK(model.creature, t) } : null),
   ranks: (V, t, art, model) => ({ title: t("GLRAIL.spell.hand"), note: "DC 25 · +15", body: V.RANKS(model.deck?.spells, t) }),
 };
 

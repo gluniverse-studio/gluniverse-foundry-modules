@@ -643,11 +643,45 @@
 /* With toggles, they are the first row and the actions the other three. */
 .gph-actpane.has-toggles .gph-arows { height: calc(3 * 24px + 2 * 2px); }
 
-/* Skills: the finder's field, the target, then the actions worth reaching
-   for right now as keys, two rows deep. */
-.gph-skilltab { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(140px, 230px) minmax(0, 1fr); grid-template-rows: 24px minmax(0, 1fr); gap: 2px 8px; align-content: start; }
-.gph-skilltab .gph-search { height: 24px; }
-.gph-keys { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(218px, 1fr)); grid-auto-rows: 24px; gap: 2px 4px; align-content: start; overflow: hidden; min-width: 0; height: calc(3 * 24px + 2 * 2px); align-self: start; }
+/* Skills: every skill and Lore as a plain check, named whole, in the
+   sheet's order, three deep. The checks never move, so the eye learns
+   where Athletics is. A column is as wide as its longest name, and gives
+   way (to an ellipsis, with the name in the tooltip) only when the deck
+   cannot hold all six. */
+.gph-skilltab { flex: 1 1 auto; min-width: 0; padding-right: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 8px; align-content: start; }
+.gph-cks { display: grid; grid-auto-flow: column; grid-template-rows: repeat(3, 24px); grid-auto-columns: minmax(0, auto); gap: 2px 3px; min-width: 0; align-content: start; }
+.gph-ck { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 24px; min-height: 24px; max-height: 24px; padding: 0 6px 0 7px; min-width: 0;
+  background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs);
+  transition: background var(--gl-d-quick) var(--gl-ease), scale var(--gl-d-tap) var(--gl-ease); }
+/* proficiency is the rule under the key, in PF2e's rank hue */
+.gph-ck::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gph-rank, transparent); }
+.gph-skn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gph-ck .gph-skn { font-size: var(--gl-is-t-meta); font-weight: 650; line-height: 1.3; color: var(--gph-text); }
+/* A Lore: its subject, and the word small beneath it. */
+.gph-skn.is-lore { display: grid; align-content: center; gap: 0; overflow: visible; }
+.gph-skn.is-lore > span { overflow: hidden; text-overflow: ellipsis; line-height: 12px; }
+.gph-skn.is-lore > small { font-size: var(--gl-is-t-meta); line-height: 9px; margin-top: -2px; font-weight: 700; font-variant-caps: all-small-caps; letter-spacing: 0.14em; color: var(--gph-faint); }
+.gph-ck > b { flex: none; font-family: var(--gph-num); font-size: var(--gl-is-t-body); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-text); }
+.gph-ck[data-rank="0"] > :is(.gph-skn, b) { color: var(--gph-faint); }
+.gph-ck:hover { background: var(--gph-ink-4); }
+.gph-ck[data-rank="0"]:hover > .gph-skn { color: var(--gph-text); }
+.gph-ck:active { scale: var(--gl-is-press); }
+.gph-keys { display: none; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 24px; gap: 2px 4px; align-content: start; overflow: hidden; min-width: 0; height: calc(3 * 24px + 2 * 2px); align-self: start; }
+/* The names come first. A deck with room to spare also holds the actions
+   worth reaching for (the pins first), and the last key always opens the
+   whole sheet. */
+.gph-keys > :nth-child(n + 3):not(.is-all) { display: none; }
+@container gph (min-width: 1800px) {
+  .gph-skilltab { grid-template-columns: minmax(0, 1fr) 224px; }
+  .gph-keys { display: grid; }
+}
+/* A deck too narrow for sixteen names keeps the ones the character is
+   trained in; every other check is on the sheet. */
+@container gph (max-width: 1559px) {
+  .gph-ck[data-rank="0"] { display: none; }
+  .gph-ck { gap: 4px; padding: 0 4px 0 5px; }
+  .gph-ck > b { font-size: var(--gl-is-t-meta); }
+}
 .gph-search { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 6px 0 8px; min-width: 0; color: var(--gph-faint); cursor: text;
   background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs);
   transition: box-shadow var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease); }
@@ -681,6 +715,24 @@
 .gph-key:hover { background: var(--gph-ink-4); }
 .gph-key:active { scale: var(--gl-is-press); }
 .gph-key.is-locked :is(b, .gph-kmod) { color: var(--gph-faint); }
+/* An attack-trait action is a strike's row in small: its name (which rolls
+   at the turn's own MAP step) and the three steps, equal and still. */
+.gph-key.is-steps { padding: 0 7px 0 0; gap: 4px; }
+.gph-kb { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; height: 22px; min-height: 22px; max-height: 22px; padding: 0 0 0 6px; }
+.gph-kb > b { font-size: var(--gl-is-t-body); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gph-kb:hover > b, .gph-fab:hover > b { color: var(--gph-paper); }
+.gph-mss { flex: none; display: flex; gap: 1px; }
+.gph-ms { width: 28px; height: 18px; min-height: 18px; max-height: 18px; padding: 0; display: grid; place-items: center;
+  font-family: var(--gph-num); font-size: var(--gl-is-t-meta); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-text);
+  background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-line-2);
+  transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease), scale var(--gl-d-tap) var(--gl-ease); }
+.gph-ms:hover { background: var(--gph-paper); color: var(--gph-on-slab); }
+.gph-ms:active { scale: var(--gl-is-press); }
+.gph-key.is-all { color: var(--gph-dim); background: transparent; }
+.gph-key.is-all .gph-ic { width: 12px; height: 12px; flex: none; }
+.gph-key.is-all > b { font-weight: 600; color: inherit; }
+.gph-key.is-all kbd { margin-left: auto; }
+.gph-key.is-all:hover { color: var(--gph-text); background: var(--gph-ink-3); }
 
 /* Items: a hand of the spells' compact card (below). The pane keeps its
    right gutter for the expand press, which opens the whole inventory. */
@@ -800,11 +852,11 @@ button.gph-drow:hover { background: var(--gph-ink-4); }
 .gph-tag[data-rank] { min-width: 15px; padding: 2px 4px; text-align: center; color: var(--gph-text); background: var(--gph-rank, var(--gph-rank-0));
   box-shadow: none; clip-path: var(--gph-clip-xs); letter-spacing: 0; }
 .gph-tag[data-rank="0"] { --gph-rank: transparent; color: var(--gph-faint); box-shadow: inset 0 0 0 1px var(--gph-line-2); }
-:is(.gph-tag, .gph-shead)[data-rank="1"] { --gph-rank: var(--gph-rank-1); }
-:is(.gph-tag, .gph-shead)[data-rank="2"] { --gph-rank: var(--gph-rank-2); }
-:is(.gph-tag, .gph-shead)[data-rank="3"] { --gph-rank: var(--gph-rank-3); }
-:is(.gph-tag, .gph-shead)[data-rank="4"] { --gph-rank: var(--gph-rank-4); }
-.gph-key .gph-tag, .gph-cchk .gph-tag { margin-left: 0; padding: 1px 3px; min-width: 14px; }
+:is(.gph-tag, .gph-ck, .gph-fk)[data-rank="1"] { --gph-rank: var(--gph-rank-1); }
+:is(.gph-tag, .gph-ck, .gph-fk)[data-rank="2"] { --gph-rank: var(--gph-rank-2); }
+:is(.gph-tag, .gph-ck, .gph-fk)[data-rank="3"] { --gph-rank: var(--gph-rank-3); }
+:is(.gph-tag, .gph-ck, .gph-fk)[data-rank="4"] { --gph-rank: var(--gph-rank-4); }
+.gph-key .gph-tag { margin-left: 0; padding: 1px 3px; min-width: 14px; }
 .gph-dnone, .gph-dnote { margin: 0; font-size: var(--gl-is-t-body); line-height: 1.4; color: var(--gph-faint); }
 .gph-dnote { margin-top: 8px; font-size: var(--gl-is-t-meta); }
 /* The hotbar's five pages, stepped from the drawer's foot. */
@@ -1043,7 +1095,7 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
    answers cost, roll and against-what before it is pressed. */
 .gph-finder {
   position: absolute; left: calc(var(--gph-pw) + 6px); right: calc(var(--gph-uw) + 6px); max-width: 1120px;
-  bottom: calc(var(--gph-h) + 38px); z-index: 45; max-height: min(480px, calc(100vh - 300px));
+  bottom: calc(var(--gph-h) + 38px); z-index: 45; max-height: min(760px, calc(100vh - var(--gph-h) - 150px));
   display: flex; flex-direction: column; pointer-events: auto;
   background: var(--gph-ink-1); box-shadow: inset 0 1px 0 var(--gph-line-2), inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-lg);
   filter: drop-shadow(0 24px 44px var(--gl-is-shade));
@@ -1069,25 +1121,32 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
 .gph-x:hover { color: var(--gph-text); background: var(--gph-ink-3); }
 .gph-drawer header .gph-x { margin-left: auto; width: 24px; height: 24px; min-height: 24px; max-height: 24px; align-self: center; }
 
-.gph-fhead, .gph-fchecks, .gph-ffoot { flex: none; }
+.gph-fhead, .gph-ffoot { flex: none; }
 .gph-results { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 12px 14px 0; scrollbar-width: thin; scrollbar-color: var(--gph-ink-5) transparent; }
 
-/* The columns: one per skill, packed like a page of text so a long column
-   and a short one share the panel without leaving holes. */
-.gph-scols { columns: 204px; column-gap: 14px; }
-.gph-scol { break-inside: avoid; display: grid; gap: 1px; margin: 0 0 12px; }
-.gph-finder:not([data-settled]) .gph-scol { animation: gph-arrive var(--gl-d-brisk) var(--gl-ease) both; animation-delay: calc(var(--gl-stagger) * min(var(--c, 0), 8) / 2); }
-.gph-shead { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; height: 24px; min-height: 24px; max-height: 24px; margin: 0 0 3px; padding: 0 6px;
-  box-shadow: inset 0 -1px 0 var(--gph-line); transition: background var(--gl-d-quick) var(--gl-ease); }
-.gph-shead::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gph-rank, var(--gph-line-2)); transform-origin: 0 50%; }
-.gph-finder:not([data-settled]) .gph-shead::after { animation: gph-rule var(--gl-d-swift) var(--gl-ease) both; animation-delay: calc(var(--gl-stagger) * (min(var(--c, 0), 8) / 2 + 2)); }
-@keyframes gph-rule { from { transform: scaleX(0); } to { transform: none; } }
-.gph-shead b { font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.gph-shead .gph-tag { margin-left: 0; padding: 1px 5px 1px 3px; }
-.gph-shead em { margin-left: auto; font-family: var(--gph-num); font-style: normal; font-size: var(--gl-is-t-lead); font-weight: 600; color: var(--gph-text); font-variant-numeric: tabular-nums; }
-button.gph-shead:hover { background: var(--gph-ink-2); }
-.gph-shead.is-plain { font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-faint); }
-.gph-chips-v { display: grid; gap: 1px; }
+/* The sheet: one row per skill. The head is the plain check; beside it,
+   every action that skill rolls, in columns that line up down the sheet. */
+.gph-skrows { display: grid; gap: 0; padding-bottom: 10px; }
+.gph-skrow { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 0 12px; align-items: start; padding: 2px 0; box-shadow: inset 0 -1px 0 var(--gph-line); }
+.gph-skrow:last-child { box-shadow: none; }
+.gph-finder:not([data-settled]) .gph-skrow { animation: gph-arrive var(--gl-d-brisk) var(--gl-ease) both; animation-delay: calc(var(--gl-stagger) * min(var(--c, 0), 12) / 3); }
+.gph-fk { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; height: 24px; min-height: 24px; max-height: 24px; padding: 0 7px 0 9px; min-width: 0;
+  background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs);
+  transition: background var(--gl-d-quick) var(--gl-ease), box-shadow var(--gl-d-quick) var(--gl-ease), scale var(--gl-d-tap) var(--gl-ease); }
+.gph-fk::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gph-rank, transparent); }
+.gph-fk > .gph-skn { font-size: var(--gl-is-t-body); font-weight: 650; line-height: 1.5; color: var(--gph-text); }
+.gph-fk > .gph-skn.is-lore > span { line-height: 12px; }
+.gph-fk .gph-tag { margin-left: 0; padding: 1px 4px; min-width: 14px; }
+.gph-fk > em { margin-left: auto; flex: none; font-family: var(--gph-num); font-style: normal; font-size: var(--gl-is-t-lead); font-weight: 600; color: var(--gph-text); font-variant-numeric: tabular-nums; }
+.gph-fk:hover { background: var(--gph-ink-4); }
+.gph-fk:active { scale: var(--gl-is-press); }
+.gph-fk.is-sel { background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-paper); }
+.gph-finder.is-sliding .gph-fk.is-sel { box-shadow: none; }
+.gph-fk mark { color: inherit; background: linear-gradient(var(--gph-paper), var(--gph-paper)) 0 100% / 100% 1.5px no-repeat; }
+.gph-skrow.is-untrained .gph-fk { background: transparent; }
+.gph-skrow.is-untrained .gph-fk > :is(.gph-skn, em) { color: var(--gph-dim); }
+.gph-skrow.is-untrained .gph-fk:hover { background: var(--gph-ink-3); }
+.gph-sacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 0 10px; min-width: 0; }
 
 /* An action: one line. Picture, name, cost; the chance on the right. */
 .gph-fa { display: flex; align-items: center; gap: 7px; width: 100%; height: 24px; min-height: 24px; max-height: 24px; padding: 0 6px 0 5px; min-width: 0;
@@ -1106,11 +1165,17 @@ button.gph-shead:hover { background: var(--gph-ink-2); }
 .gph-fa:active { scale: var(--gl-is-press); }
 .gph-fa.is-sel { background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-paper); }
 .gph-fa.is-sel .gph-aic { color: var(--gph-paper); }
+/* With its MAP steps: the name is the press, the steps stand beside it. */
+.gph-fa.is-steps { padding: 0 6px 0 0; gap: 5px; }
+.gph-fab { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 7px; height: 24px; min-height: 24px; max-height: 24px; padding: 0 0 0 5px; color: inherit; }
+.gph-fab > b { font-size: var(--gl-is-t-body); font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gph-fab .gph-cost { color: var(--gph-faint); }
+.gph-fa.is-steps .gph-codds { margin-left: 0; min-width: 3.6ch; text-align: right; }
+.gph-fa.is-steps .gph-pinmk { margin-left: 0; }
 /* Pinned to the Skills tab: a paper pin beside the chance, apart from the cost. */
 .gph-selring { position: absolute; z-index: 2; pointer-events: none; box-shadow: inset 0 0 0 1px var(--gph-paper); clip-path: var(--gph-clip-xs); }
 .gph-finder.is-sliding .gph-fa.is-sel { box-shadow: none; }
 .gph-fa.is-pinning .gph-pinmk { animation: gph-land var(--gl-d-swift) var(--gl-ease); }
-.gph-scol.is-opening .gph-fa:nth-child(n + 7) { animation: gph-arrive var(--gl-d-brisk) var(--gl-ease) both; }
 .gph-pinmk { margin-left: auto; flex: none; display: grid; place-items: center; color: var(--gph-paper); }
 .gph-pinmk .gph-ic { width: 11px; height: 11px; }
 .gph-pinmk + .gph-codds { margin-left: 0; }
@@ -1118,17 +1183,7 @@ button.gph-shead:hover { background: var(--gph-ink-2); }
 .gph-fa mark { color: inherit; background: linear-gradient(var(--gph-paper), var(--gph-paper)) 0 100% / 100% 1.5px no-repeat; }
 /* tall enough a line box that the mark’s foot is not clipped with the ellipsis */
 .gph-fa > b { line-height: 1.5; }
-.gph-more { display: flex; align-items: center; height: 22px; min-height: 22px; max-height: 22px; padding: 0 6px 0 27px; width: 100%; font-size: var(--gl-is-t-meta); font-weight: 600; color: var(--gph-faint); }
-.gph-more:hover { color: var(--gph-text); }
 
-/* The checks with no action here, and the Lores, along the foot. */
-.gph-fchecks { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; padding: 8px 12px 8px 14px; box-shadow: inset 0 1px 0 var(--gph-line); }
-.gph-fchecks > span { margin-right: 6px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-faint); }
-.gph-cchk { display: flex; align-items: center; gap: 6px; height: 22px; min-height: 22px; max-height: 22px; padding: 0 7px;
-  box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease); }
-.gph-cchk b { font-size: var(--gl-is-t-meta); font-weight: 600; color: var(--gph-dim); }
-.gph-cchk em { font-family: var(--gph-num); font-style: normal; font-size: var(--gl-is-t-meta); font-weight: 600; color: var(--gph-text); font-variant-numeric: tabular-nums; }
-.gph-cchk:hover { background: var(--gph-ink-3); }
 .gph-fmap { flex: none; display: flex; align-items: baseline; gap: 5px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; color: var(--gph-faint); }
 .gph-fmap b { font-family: var(--gph-num); font-size: var(--gl-is-t-body); font-weight: 600; letter-spacing: 0; color: var(--gph-text); }
 .gph-ffoot { display: flex; align-items: center; gap: 16px; padding: 7px 14px 8px; box-shadow: inset 0 1px 0 var(--gph-line); font-size: var(--gl-is-t-meta); color: var(--gph-faint); }
@@ -1146,6 +1201,54 @@ button.gph-shead:hover { background: var(--gph-ink-2); }
 .gph-fsel > em[data-tone="good"] { color: var(--gph-green); }
 .gph-fsel > em[data-tone="bad"] { color: var(--gph-red); }
 .gph-fsel > .gph-fdim { color: var(--gph-faint); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+/* ══ THE GM'S STAT BAR ════════════════════════════════════════════
+   What the creature does without a press, riding its panel's top edge:
+   what changes the damage first, then the abilities with no action to
+   take, then the senses. The stat block drawer has all of it whole. */
+.gph-statbar { position: absolute; left: 0; width: 650px; max-width: 100%; bottom: calc(100% + 3px); z-index: 6;
+  display: flex; align-items: stretch; gap: 6px; min-height: 26px; padding: 0 0 0 8px; overflow: hidden;
+  background: var(--gph-ink-1); box-shadow: inset 0 1px 0 var(--gph-line-2), inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); }
+/* Two lines at most: what changes the damage usually fills the first, and
+   the abilities take the second. Past that the drawer has it. */
+.gph-sb-run { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; align-content: start; gap: 0 10px; max-height: 52px; overflow: hidden; }
+.gph-sb-run > * { height: 26px; }
+.gph-sb-run > .gph-pas { height: 20px; margin: 3px 0; }
+.gph-sb-g { flex: none; display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: var(--gl-is-t-meta); }
+.gph-sb-g > i { font-style: normal; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-faint); }
+.gph-sb-g > b { font-size: var(--gl-is-t-body); font-weight: 600; color: var(--gph-text); }
+:is(.gph-sb-g, .gph-sl)[data-iwr="immune"] > :is(i, dt) { color: var(--gph-dim); }
+:is(.gph-sb-g, .gph-sl)[data-iwr="weak"] > :is(i, dt) { color: var(--gph-red); }
+:is(.gph-sb-g, .gph-sl)[data-iwr="resist"] > :is(i, dt) { color: var(--gph-green); }
+.gph-sb-none { font-size: var(--gl-is-t-meta); font-weight: 500; color: var(--gph-faint); white-space: nowrap; }
+.gph-pas { flex: none; display: flex; align-items: center; gap: 5px; height: 20px; min-height: 20px; max-height: 20px; padding: 0 8px 0 6px; max-width: 190px;
+  background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease); }
+.gph-pas > b { font-size: var(--gl-is-t-meta); font-weight: 600; color: var(--gph-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gph-pas:hover, .gph-pas.is-peek { background: var(--gph-ink-5); }
+/* a passive ability has no glyph in PF2e: a small paper lozenge stands for "always" */
+.gph-pasg { flex: none; width: 6px; height: 6px; rotate: 45deg; box-shadow: inset 0 0 0 1px var(--gph-dim); }
+.gph-sb-all { flex: none; display: flex; align-items: center; gap: 5px; height: auto; min-height: 26px; max-height: none; padding: 0 10px 0 9px;
+  font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-dim);
+  box-shadow: inset 1px 0 0 var(--gph-line); transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease); }
+.gph-sb-all .gph-ic { width: 12px; height: 12px; }
+.gph-sb-all:hover { background: var(--gph-ink-3); color: var(--gph-text); }
+.gph[data-folded] .gph-statbar { opacity: 0; pointer-events: none; }
+
+/* The stat block drawer rises over the creature's own panel. */
+.gph-drawer:has(.gph-statblock) { right: auto; left: calc(var(--gph-pw) + 6px); bottom: calc(var(--gph-h) + 64px); width: 520px; max-width: 520px; transform-origin: 0 100%; }
+.gph-drawer:has(.gph-statblock) .gph-dbody { max-height: min(460px, calc(100vh - var(--gph-h) - 200px)); }
+.gph-statblock { display: grid; gap: 10px; }
+.gph-sls { margin: 0; display: grid; gap: 3px; }
+.gph-sl { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 0 10px; align-items: baseline; }
+.gph-sl > dt { font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-faint); }
+.gph-sl > dd { margin: 0; font-size: var(--gl-is-t-body); font-weight: 500; line-height: 1.4; color: var(--gph-text); }
+.gph-spas { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.gph-spa { display: grid; gap: 2px; width: 100%; height: auto; min-height: 0; max-height: none; padding: 7px 10px 8px 9px; text-align: left;
+  background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease); }
+.gph-spa:hover { background: var(--gph-ink-3); }
+.gph-spah { display: flex; align-items: center; gap: 7px; }
+.gph-spah > b { font-size: var(--gl-is-t-body); font-weight: 650; color: var(--gph-text); }
+.gph-spat { font-size: var(--gl-is-t-meta); font-weight: 500; line-height: 1.45; color: var(--gph-dim); white-space: normal; }
 
 /* ══ THE ECHO ══ the press shows what it rolled: the total, flipping in,
    on the degree's tone, then gone. Only for a roll this viewer can see. */
@@ -1188,7 +1291,7 @@ button.gph-shead:hover { background: var(--gph-ink-2); }
    enough for the whole glyph; the press keeps its height, so the row pitch
    does not move. */
 :is(.gph-stn, .gph-row, .gph-key, .gph-move, .gph-drow, .gph-tgt, .gph-fa) > b,
-:is(.gph-tab, .gph-tb-k, .gph-know, .gph-drow) > span:not(.gph-cost), .gph-tog, .gph-mac b, .gph-shead b, .gph-subt { line-height: 1.5; }
+:is(.gph-tab, .gph-tb-k, .gph-know, .gph-drow) > span:not(.gph-cost), .gph-tog, .gph-mac b, .gph-subt { line-height: 1.5; }
 
 /* ══ NARROW ══ the rail keeps its height and gives up words, then width,
    never a number someone is about to act on (ADR 0013 records the order):

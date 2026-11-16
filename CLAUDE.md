@@ -34,6 +34,7 @@ scripts/
     gl-surfaces.mjs         Pause/release lifecycle for suite WebGL contexts
     face-frame.mjs          Shared head locator for portrait framing (docs/FACE_FRAME.md)
     face-frame-math.mjs     Its pure crop/placement geometry
+    dice-wait.mjs           When a message's Dice So Nice dice have landed
     quick-palette.mjs       Ctrl+K GM search; features add results with
                             registerQuickProvider() from their onInit
   features/
@@ -1967,6 +1968,16 @@ feature calls `use()` before each draw so a context released while idle is
 rebuilt first. A lost context stays lost on its canvas, so a rebuild needs a new
 canvas. Every backdrop blur is written against `--gl-blur` / `--gl-glass-k`
 (DESIGN_SYSTEM.md rule 9), never bare pixels. The check requires both.
+
+**When a feature shows what a roll came to** (a total, a degree, damage taken off
+a bar, a chance that narrows), it waits for `diceSettled(message)` in
+`core/dice-wait.mjs` first. Foundry announces a message seconds before Dice So
+Nice's dice stop, so anything drawn from `createChatMessage` at once gives the
+roll away. Never call `waitFor3DAnimationByMessageID` directly: asked from a
+hook that runs before Dice So Nice's own it answers "nothing is rolling", and its
+promise can fail to settle, which is why the helper yields a task first and
+races a timeout. `pf2e-rail-check` drives the helper and pins its four callers
+(the PF2e HUD's echo, chip damage, the Odds ledger, Critical).
 
 **When touching CSS**, additionally confirm you have not reintroduced any of the
 drift this design system exists to prevent — a raw hex that duplicates a token,

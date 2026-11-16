@@ -108,14 +108,15 @@ the right edge of `#ui-middle`. While a rail is drawn it hides `#hotbar`
 (`ph.hideHotbar`; the Macros drawer shows the user's hotbar) and Foundry's
 player list `#players` (`ph.hidePlayers`; a kept list keeps the corner and
 the rail starts beside it), gives both back when it is not, and publishes the rail's top edge as
-`--gph-rail-top` on `body`. `/` opens the finder from the canvas only (never
+`--gph-rail-top` on `body`. `/` opens the skill sheet from the canvas only (never
 while somebody types).
 
 **Putting things away.** Escape closes a peek or a drawer and is *eaten* when
 it does: left to Foundry the same key also releases the controlled token, and
 on the GM's screen the rail with it. A press anywhere off the rail closes a
-drawer or a peek too. The finder is the exception and stays open through it,
-because targeting a token on the canvas is part of using it.
+drawer or a peek too. The skill sheet is the exception and stays open through it,
+because targeting a token on the canvas is part of using it; so does the GM's
+stat block, which is read while creatures are picked on the canvas.
 
 **Tooltips.** The view states what a press is in `title` (it is pure, and the
 preview has nothing else). On Foundry the host moves every `title` to
@@ -152,7 +153,7 @@ No press opens a dialog of the HUD's own. Where PF2e shows its
 | Strike step | `strike.variants[i].roll({ event })`; MAP then steps |
 | Damage / crit | `strike.damage({ event })` / `strike.critical({ event })` |
 | Blast step / damage | `ElementalBlast#attack({ element, damageType, melee, mapIncreases })` / `#damage` |
-| Skill action (finder, deck) | `game.pf2e.actions.get(slug).use({ actors, statistic, multipleAttackPenalty, event })`, else PF2e's legacy function of that name; Earn Income → `game.pf2e.actions.earnIncome(actor)` |
+| Skill action (sheet, deck) | `game.pf2e.actions.get(slug).use({ actors, statistic, multipleAttackPenalty, event })` — `statistic` is the sheet row the press stands in, `multipleAttackPenalty` the MAP step pressed (the action's name rolls at the turn's own step), else PF2e's legacy function of that name; Earn Income → `game.pf2e.actions.earnIncome(actor)` |
 | Spell card | `entry.cast(spell, { rank, slotId })` |
 | Action / feat (peek Use) | `game.pf2e.rollItemMacro(uuid, event)` — PF2e spends the frequency and applies the self-effect |
 | Post (peek) | `item.toMessage` / `spell.toMessage` |
@@ -255,6 +256,55 @@ row keeps still while attacks land, so every bonus reads at a glance. (A
 live step that grew, faded and slid was tried and taken out: too much moved
 to judge a number by.)
 
+## Skills
+
+**The Skills tab is the plain checks.** Every skill and Lore is one press,
+named whole, in the sheet's order (by name), three deep; a column is as wide as
+its longest name. A Lore is its subject with the word small on a second line.
+The keys never move, so nobody has to search for Athletics. Proficiency is the
+rule under a key, in PF2e's rank hue; an untrained skill is dimmer. A deck too
+narrow for sixteen names keeps the trained ones (`@container gph`); a deck with
+room to spare also shows the actions worth reaching for (the pins first, then
+the best odds against the target, then the mode's staples) and a key that opens
+the sheet.
+
+**The skill sheet** (`/`, the tab's ⤢, the GM's Skills press) is
+`finderModel().rows`: Perception, the sixteen skills, the Lores, every one of
+them always there. A row's head is that skill's plain check; beside it is every
+action that skill can roll. Nothing is folded and nothing has to be opened.
+
+- An action several skills can roll (Recall Knowledge, Escape, Earn Income)
+  stands in each of their rows and is rolled with **that row's** skill
+  (`data-stat`). A statistic with no row of its own (Unarmed for Escape, Reflex
+  for Grab an Edge) competes inside the rows the action has.
+- A trained-only action under an untrained skill is not drawn.
+- An encounter shows what can be done in one; exploring adds the exploration
+  and downtime actions; typing finds any of them.
+- Typing a skill's name keeps its whole row and puts the check first, so
+  `/ath⏎` rolls Athletics. Typing an action's name keeps that action, and the
+  row's check takes no key, so `/trip⏎` rolls Trip.
+- Left and right step through the keys in reading order, up and down change
+  row, Enter presses, P pins.
+
+**MAP steps.** An action with the attack trait (Trip, Grapple, Shove, Disarm,
+Reposition, Escape, Force Open) carries three presses beside its name, as a
+strike's row does: first, second and third attack, each printing its own
+modifier, none lit by the turn. A step hands PF2e that step
+(`multipleAttackPenalty`), and PF2e applies its own penalty for it (−5, then
+−10), which is what the press prints. The action's name rolls at the turn's own step; `1`–`3` on the
+sheet press a step of the selected action.
+
+## The GM's stat bar
+
+Over the creature panel, always drawn (`STATBAR`, from `statOf`): immunities,
+weaknesses and resistances in PF2e's own labels (which already carry the value
+and the exceptions), then every ability with no action to take (`actionType`
+passive; reactions and free actions are among the moves already), then the senses. Two lines at
+most. A passive is a press that peeks its text, as an ability chip does.
+**Stat block** opens a drawer with the same facts whole, plus speeds, languages
+and each passive's text; it stays open from creature to creature and through a
+press on the canvas, and closes on its ✕ or Escape.
+
 ## The echo (`echo.mjs`)
 
 A roll's total (and its degree, where PF2e would show it: `seesTruth()` or the
@@ -262,3 +312,10 @@ metagame "results" setting) prints on the press that made it, when the message
 arrives within twelve seconds from the same user for the same actor. Never on the stream
 login, never for a blind roll (PF2e's secret trait — even on the GM's screen,
 where the card already has it), never for a whisper this viewer is not in.
+
+It prints when the message's **dice have landed**, not when the message arrives:
+with Dice So Nice the two are seconds apart, and a total printed at once gives the
+roll away under the dice still tumbling. The press is matched as the message
+arrives (while it is still the pending one); the number waits on
+`diceSettled(message)` in `core/dice-wait.mjs` and the button is looked up again
+afterwards.

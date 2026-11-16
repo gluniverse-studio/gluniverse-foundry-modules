@@ -181,7 +181,7 @@ const playerFix = ["martial", "prepared", "spontaneous", "kineticist", "companio
 const gmFix = ["gm", "hazard", "gm-horde"].map((k) => STATES[k](art));
 const union = (models) => { const u = new Set(VIEW_EXTRAS); for (const m of models) for (const p of paths(m)) u.add(p); return u; };
 /* `deck.skills.suggested` is the finder's output in both; compare it through the finder, not the fixtures (which leave it to the host). */
-const fold = (p) => p.replace(/^\.deck\.skills\.(suggested|target)(\[\])?\..*$/, ".deck.skills.$1");
+const fold = (p) => p.replace(/^\.deck\.skills\.(suggested|target|checks)(\[\])?\..*$/, ".deck.skills.$1");
 const allowP = new Set([...union(playerFix)].map(fold)), allowG = new Set([...union(gmFix)].map(fold));
 
 function holds(model, allow, name) {
@@ -189,7 +189,7 @@ function holds(model, allow, name) {
   ok(!/undefined|NaN|\[object Object\]/.test(html.replace(/data-[a-z-]+="[^"]*"/g, "")), `${name}: the drawn rail prints undefined/NaN/[object Object]`);
   for (const p of paths(model)) {
     const f = fold(p);
-    if (/^\.deck\.skills\.(suggested|target)/.test(f) || f.startsWith(".sk.")) continue;
+    if (/^\.deck\.skills\.(suggested|target|checks)/.test(f) || f.startsWith(".sk.")) continue;
     ok(allow.has(f), `${name}: the reader emits ${p}, which no fixture draws and view.mjs does not read`);
   }
   return html;
@@ -377,7 +377,7 @@ section("every press the view draws has a host handler", () => {
   for (const [name, build] of Object.entries(STATES)) {
     const m = build(art);
     marks.push(V.RAIL({ ...m, util: { ...(m.util ?? {}), open: null } }, t));
-    if (m.sk) marks.push(V.FINDER({ ...finderOf(m), expanded: [] }, t));
+    if (m.sk) marks.push(V.FINDER(finderOf(m), t));
     if (m.deck?.spells) marks.push(V.RANKS(m.deck.spells, t));
   }
   const fa = fighter();
@@ -410,7 +410,7 @@ section("every press the view draws has a host handler", () => {
   if (pf2e) for (const a of SKILL_ACTIONS) ok(pf2e.has(a.slug) || pf2e.has(a.slug.replace(/-([a-z])/g, (_, c) => c.toUpperCase())), `PF2e 8.7 defines no action "${a.slug}": its press would do nothing`);
 });
 
-function finderOf(m) { return K.finderModel({ ...m.sk, query: "", group: "all", sel: 0, mode: m.mode ?? "encounter", map: m.turnbar?.map ?? 0, t }); }
+function finderOf(m) { return K.finderModel({ ...m.sk, query: "", sel: 0, mode: m.mode ?? "encounter", map: m.turnbar?.map ?? 0, t }); }
 
 /** The slugs and legacy names `game.pf2e.actions` carries, read from the
  *  local PF2e bundle when there is one. */
@@ -518,7 +518,9 @@ section("every key resolves, including the runtime-built ones", () => {
     ...["perception", "fortitude", "reflex", "will", "stealth", "deception"].map((k) => `GLRAIL.check.${k}`),
     ...["perception", "fortitude", "reflex", "will"].map((k) => `GLRAIL.check.${k}Short`),
     ...["spells", "actions", "skills", "items"].map((k) => `GLRAIL.tab.${k}`),
-    ...["rest", "macros", "sheet", "effects", "inventory", "strikes", "foes"].map((k) => `GLRAIL.drawer.${k}`),
+    ...["rest", "macros", "sheet", "effects", "inventory", "strikes", "foes", "statblock"].map((k) => `GLRAIL.drawer.${k}`),
+    ...["immune", "weak", "resist", "senses", "speeds", "languages"].map((k) => `GLRAIL.stat.${k}`),
+    ...[0, 1, 2].map((i) => `GLRAIL.skill.step${i}`),
     ...[0, 1, 2, 3, 4].flatMap((r) => [`GLRAIL.prof.${r}`, `GLRAIL.prof.${r}Short`]),
     ...["1", "2", "3", "r", "f", "range"].map((c) => `GLRAIL.cost.${c}`),
     ...["hostile", "friendly", "neutral", "secret"].map((d) => `GLRAIL.disp.${d}`),
@@ -770,6 +772,177 @@ section("the Hit Point field, tooltips and putting things away", () => {
   ok(/TIMING\.wheelStep/.test(wheel) && wheel.indexOf("this.wheelAt = now") < wheel.indexOf("if (!quiet) return"), "the wheel turns one rank a gesture: every event extends the gesture, not only the one that stepped");
   ok(/class="gph-tog[^>]*><span>/.test(V.ACTIONS({ toggles: [{ id: "a|b|c", label: "Aura", on: true }], list: [] }, t)) && /\.gph-tog > span \{[^}]*text-overflow: ellipsis/.test(css), "a squeezed toggle ends in an ellipsis, not mid-letter");
 });
+
+/* ══ the skill sheet, the MAP steps, the stat bar ══════════════════════ */
+
+section("the skill sheet shows every skill, and never has to be opened", () => {
+  const m = STATES.martial(art);
+  const f = finderOf(m);
+  const keys = f.rows.map((r) => r.key);
+  const sixteen = keys.filter((k) => R.SKILLS.includes(k));
+  ok(keys[0] === "perception", "Perception leads the sheet");
+  ok(sixteen.length === 16 && R.SKILLS.every((k) => keys.includes(k)), `every one of the sixteen skills has a row, untrained or not (got ${sixteen.length})`);
+  const names = f.rows.filter((r) => R.SKILLS.includes(r.key)).map((r) => r.name);
+  ok(names.join("|") === [...names].sort((a, b) => a.localeCompare(b)).join("|"), "the skills stand in the sheet's order, by name, whatever their modifier");
+  ok(f.rows.at(-1).lore === true && f.rows.findIndex((r) => r.lore) > keys.indexOf("thievery"), "the Lores follow the skills");
+  ok(f.rows.every((r) => r.check === (r.key === "perception" ? "perception" : `skill:${r.key}`)), "every row's head is that skill's plain check");
+  ok(!("columns" in f) && !("checks" in f), "nothing is folded away: no columns to open, no foot of leftover checks");
+  /* an action several skills roll stands in each row, rolled with that row's skill */
+  const rk = f.rows.filter((r) => r.actions.some((a) => a.slug === "recall-knowledge"));
+  ok(["arcana", "crafting", "nature", "occultism", "religion", "society"].every((k) => rk.some((r) => r.key === k)) && rk.some((r) => r.lore), "Recall Knowledge stands under every skill that can roll it, and the Lores");
+  ok(rk.every((r) => r.actions.find((a) => a.slug === "recall-knowledge").skill.slug === r.key && r.actions.find((a) => a.slug === "recall-knowledge").stat === r.key), "and is rolled with its row's skill, not the character's best");
+  /* a statistic with no row competes inside the action's rows */
+  const esc = f.rows.find((r) => r.key === "acrobatics").actions.find((a) => a.slug === "escape");
+  ok(esc && esc.stat === "acrobatics" && esc.skill.mod === Math.max(m.sk.skills.acrobatics.mod, m.sk.skills.unarmed.mod), "Escape under Acrobatics rolls the better of Acrobatics and Unarmed");
+  /* trained-only under an untrained skill cannot be taken */
+  const untrained = f.rows.filter((r) => !(r.rank > 0));
+  ok(untrained.length > 0 && untrained.every((r) => r.actions.every((a) => !SKILL_ACTIONS.find((x) => x.slug === a.slug).trained)), "a trained-only action is not drawn under an untrained skill");
+  ok(f.rows.find((r) => r.key === "thievery").actions.every((a) => a.slug !== "pick-a-lock"), "an untrained Thievery offers no Pick a Lock");
+  /* an encounter shows what can be done in one; exploring, everything */
+  ok(!f.actions.some((a) => a.slug === "treat-wounds") && K.finderModel({ ...m.sk, query: "", mode: "exploration", t }).rows.find((r) => r.key === "medicine").actions.some((a) => a.slug === "treat-wounds"), "exploring adds the exploration actions; an encounter leaves them out");
+  ok(K.finderModel({ ...m.sk, query: "treat w", mode: "encounter", t }).rows.some((r) => r.actions.some((a) => a.slug === "treat-wounds")), "typing finds an action the mode left out");
+
+  /* typing: a skill's name keeps its whole row and Enter rolls the check */
+  const ath = K.finderModel({ ...m.sk, query: "ath", mode: "encounter", t });
+  ok(ath.rows.length === 1 && ath.rows[0].key === "athletics" && !ath.rows[0].aside && ath.rows[0].actions.length === f.rows.find((r) => r.key === "athletics").actions.length, "a skill's name keeps its whole row");
+  const athHtml = V.FINDER(ath, t);
+  ok(/class="gph-fk is-sel" data-check="skill:athletics"[^>]*data-k="0"/.test(athHtml), "and the check is the first key, so Enter rolls Athletics");
+  /* an action's name keeps that action; the row's check is drawn but the keys skip it */
+  const trip = K.finderModel({ ...m.sk, query: "trip", mode: "encounter", t });
+  ok(trip.rows.length === 1 && trip.rows[0].aside === true && trip.rows[0].actions.map((a) => a.slug).join() === "trip", "an action's name keeps that action alone");
+  const tripHtml = V.FINDER(trip, t);
+  ok(/class="gph-fk" data-check="skill:athletics" data-rank="\d" title/.test(tripHtml) && /class="gph-fa is-sel is-steps"[^>]*data-k="0"/.test(tripHtml), "and Enter rolls Trip, not Athletics: the row's check takes no key");
+
+  /* the markup */
+  const html = V.FINDER(f, t);
+  const ks = [...html.matchAll(/data-k="(\d+)"/g)].map((x) => +x[1]);
+  ok(ks.length === f.rows.length + f.rows.reduce((n, r) => n + r.actions.length, 0) && ks.every((k, i) => k === i), "every check and every action is a key, numbered in reading order");
+  ok(!/expand-col|gph-more|gph-fchecks/.test(html) && !/expand-col/.test(src["host.mjs"]), "nothing on the sheet is a \"more\" press");
+  ok(/\.gph-skrow \{[^}]*grid-template-columns: \d+px minmax\(0, 1fr\)/.test(css) && /\.gph-sacts \{[^}]*repeat\(auto-fill/.test(css), "a row is its check and its actions, in columns that line up down the sheet");
+  const host = src["host.mjs"];
+  ok(/querySelectorAll\("\[data-finder\] \[data-k\]"\)/.test(host) && /if \(e\.key === "Enter"\) \{ eat\(\); if \(c\) pressOf\(c\)\.click\(\)/.test(host), "Enter presses the selected key, a check or an action alike");
+  ok(/d\.stat \?\? null\)/.test(host) && /rows\.find\(\(r\) => r\.key === stat\)\?\.actions\.find/.test(host) && /statistic: a\.skill\.slug/.test(host), "a press on the sheet rolls with the row it stands in");
+  ok(/"data-skill-action", "data-stat"\]/.test(host), "the echo lands on the row that rolled, not on the action's first row");
+});
+
+section("the Skills tab is the plain checks, one press each", () => {
+  const m = STATES.martial(art);
+  const deck = R.withSkills(m.deck, m.sk, { mode: m.mode, map: 0, t });
+  const checks = deck.skills.checks;
+  ok(checks.length === 16 + (m.sk.lores?.length ?? 0) && !checks.some((c) => c.key === "perception"), "every skill and Lore is a check on the tab (Perception is on the vitals plate)");
+  const html = V.SKILLTAB(deck.skills, t);
+  for (const c of checks) ok(html.includes(`data-check="${c.check}"`), `the tab draws no check for ${c.key}`);
+  ok(!/data-find/.test(html) && /data-act="finder"/.test(html), "the tab asks for no typing: the sheet is one press away");
+  for (const c of checks.filter((x) => !x.lore)) ok(html.includes(`<span class="gph-skn">${c.name}</span>`), `the tab abbreviates ${c.name}: a skill is named whole`);
+  ok(/<span class="gph-skn is-lore"><span>Warfare<\/span><small>Lore<\/small><\/span>/.test(html), "a Lore is its subject, with the word small on a second line");
+  ok(/\.gph-cks \{[^}]*grid-auto-columns: minmax\(0, auto\)/.test(css) && /\.gph-skn \{[^}]*text-overflow: ellipsis/.test(css), "a column is as wide as its longest name, and only a deck with no room cuts one");
+  ok(/\.gph-cks \{[^}]*grid-auto-flow: column[^}]*grid-template-rows: repeat\(3, 24px\)/.test(css), "the checks fill the pane three deep, in the sheet's order");
+  ok(/\.gph-keys \{ display: none;/.test(css) && /@container gph \(min-width: \d+px\) \{[^@]*\.gph-keys \{ display: grid; \}/.test(css), "the action keys take only the room the names leave");
+});
+
+section("an attack-trait skill action can be rolled at every MAP step", () => {
+  const m = STATES.martial(art);
+  const attacks = SKILL_ACTIONS.filter((a) => a.attack).map((a) => a.slug);
+  ok(attacks.includes("trip") && attacks.includes("grapple") && attacks.includes("escape"), "the catalogue marks the attack-trait actions");
+  const f = finderOf(m);
+  const sheet = V.FINDER(f, t);
+  for (const r of f.rows) for (const a of r.actions.filter((x) => x.attack)) {
+    for (const i of [0, 1, 2]) ok(new RegExp(`class="gph-ms" data-skill-action="${a.slug}" data-stat="${r.key}" data-variant="${i}" data-attack`).test(sheet), `the sheet draws no MAP step ${i} for ${a.slug} under ${r.key}`);
+    ok(a.variants.length === 3 && a.variants[0] === (a.skill.mod >= 0 ? `+${a.skill.mod}` : `−${-a.skill.mod}`), `${a.slug}: the first step is the bare modifier`);
+  }
+  ok(!/class="gph-ms" data-skill-action="demoralize"/.test(sheet), "an action without the attack trait carries no steps");
+  const deck = R.withSkills(m.deck, { ...m.sk, pins: ["trip"] }, { mode: m.mode, map: 2, t });
+  const tab = V.SKILLTAB(deck.skills, t);
+  ok([0, 1, 2].every((i) => new RegExp(`class="gph-ms" data-skill-action="trip" data-variant="${i}"`).test(tab)), "the tab's keys carry the same three steps");
+  ok(/>\+15<\/button>.*>\+10<\/button>.*>\+5<\/button>/s.test(tab.slice(tab.indexOf('data-skill-action="trip" data-variant="0"') - 40)), "and print each step's own modifier, whatever the turn's MAP");
+  const host = src["host.mjs"];
+  ok(/this\.useSkillAction\(d\.skillAction, d\.variant != null \? \+d\.variant : undefined/.test(host) && /multipleAttackPenalty: map/.test(host) && /const map = a\.attack \? \(variant \?\? this\.model\?\.turnbar\?\.map \?\? 0\) : 0/.test(host),
+    "a step press hands PF2e that step; the name rolls at the turn's own");
+  ok(!/<button[^>]*>(?:(?!<\/button>)[\s\S])*<button/.test(sheet) && !/<button[^>]*>(?:(?!<\/button>)[\s\S])*<button/.test(tab), "no press is nested inside another");
+  ok(/\.gph-ms \{[^}]*min-height: 18px[^}]*max-height: 18px/.test(css), "a MAP step states its own size");
+});
+
+section("the GM reads a creature's passives without opening anything", () => {
+  const withStat = () => {
+    const a = ogre();
+    a.system.attributes.immunities = [{ type: "fear", label: "fear" }];
+    a.system.attributes.weaknesses = [{ type: "cold-iron", value: 5 }];
+    a.system.attributes.resistances = [{ type: "physical", value: 3, label: "physical 3 (except bludgeoning)" }];
+    a.system.perception = { ...(a.system.perception ?? {}), senses: [{ type: "scent", label: "Scent (imprecise) 30 ft" }] };
+    a.system.movement = { speeds: { land: { value: 25 }, climb: { value: 15 }, fly: { value: 0 } } };
+    a.system.details.languages = { value: ["jotun", "common"] };
+    a.itemTypes.action.push(item("n3", "Thick Hide", "action", { actionType: { value: "passive" }, description: { value: "<p>Reduce physical damage by 3. @Check[fortitude|dc:18]</p>" } }));
+    return a;
+  };
+  const a = withStat();
+  const s = R.statOf(a, { t, loc, config: {} });
+  ok(s.iwr.map((x) => `${x.k}:${x.text}`).join("|") === "immune:fear|weak:Cold iron 5|resist:physical 3 (except bludgeoning)", `immunities, weaknesses and resistances, in PF2e's own words (got ${s.iwr.map((x) => `${x.k}:${x.text}`).join("|")})`);
+  ok(s.passives.map((p) => p.id).join() === "n3", "the passives are the abilities with no action to take; a reaction or an action is a move already, and is not drawn twice");
+  ok(s.passives[0].text === "Reduce physical damage by 3. Fortitude DC 18", `a passive's text is read plain, inline syntax resolved (got ${s.passives[0].text})`);
+  ok(s.senses.join() === "Scent (imprecise) 30 ft" && s.speeds.length === 2 && s.languages.length === 2, "senses, the speeds it has, languages");
+  const c = R.creatureOf(a, { t, loc, config: {}, formulas: new Map() });
+  ok(c.stat && c.stat.iwr.length === 3, "the creature's model carries its stat block");
+  const g = STATES.gm(art);
+  const rail = V.RAIL(g, t);
+  ok(/data-statbar/.test(rail) && rail.indexOf("data-statbar") < rail.indexOf("gph-npc"), "the stat bar is drawn with the creature panel, always");
+  for (const p of g.creature.stat.passives) ok(rail.includes(`class="gph-pas" data-action="${p.id}"`), `the bar draws no press for the passive ${p.name}`);
+  ok(/data-iwr="weak"/.test(rail) && /data-iwr="immune"/.test(rail) && /data-iwr="resist"/.test(rail) && /data-drawer="statblock"/.test(rail), "what changes the damage, and the way to the whole block");
+  ok(!/data-statbar/.test(V.RAIL(STATES.martial(art), t)) && !/data-statbar/.test(V.RAIL(STATES.hazard(art), t)), "a player's rail and a hazard draw no stat bar");
+  const block = V.STATBLOCK(g.creature, t);
+  ok(g.creature.stat.passives.every((p) => block.includes(p.text.slice(0, 30).replace(/&/g, "&amp;"))) && /Jotun/.test(block) && /Climb/.test(block), "the drawer has each passive's text, the speeds and the languages");
+  ok(/V\.STATBLOCK\(m\.creature, t\)/.test(src["host.mjs"]), "the host builds the stat block drawer");
+  const host = src["host.mjs"];
+  ok(/this\.open\.drawer === "statblock" && model\.creature/.test(host) && /this\.open\.drawer !== "statblock"\) \{ this\.open\.drawer = null; this\.render\(\); \}/.test(host) && /if \(this\.open\.drawer !== "statblock"\) this\.open\.drawer = null;/.test(host),
+    "the stat block stays open from creature to creature, and through a press on the canvas");
+  ok(/\.gph-sb-run \{[^}]*flex-wrap: wrap[^}]*max-height: 52px/.test(css), "the bar takes two lines before anything is cut");
+});
+
+/* ══ the dice ══════════════════════════════════════════════════════════ */
+
+{
+  const before = problems.length;
+  const { diceSettled, hasDice } = await import("../scripts/core/dice-wait.mjs");
+  const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+  /* Dice So Nice as it behaves: it marks the message animating in its own
+     createChatMessage hook, which may run after ours in the same dispatch. */
+  const board = () => {
+    const b = { animating: false, release: null, asked: 0 };
+    b.waitFor3DAnimationByMessageID = () => { b.asked++; return b.animating ? new Promise((r) => { b.release = r; }) : Promise.resolve(true); };
+    return b;
+  };
+  const msg = { id: "m1", rolls: [{ total: 17 }] };
+  {
+    const b = board(); let done = false;
+    const p = diceSettled(msg, { dice3d: b, timeout: 500 }).then(() => { done = true; });
+    ok(b.asked === 0, "the dice wait does not ask in the hook itself");
+    b.animating = true;
+    await tick(30);
+    ok(b.asked === 1 && !done, "the dice wait asks only after Dice So Nice has marked the message, and holds while the dice roll");
+    b.release?.(true); await p;
+    ok(done, "and lets go when they land");
+  }
+  {
+    const b = board(); b.animating = true; const at = Date.now();
+    await diceSettled(msg, { dice3d: b, timeout: 60 });
+    ok(Date.now() - at >= 50 && Date.now() - at < 400, "a completion signal that never comes ends at the timeout, never in silence");
+  }
+  {
+    const b = board(); b.animating = true;
+    await diceSettled({ id: "m2", rolls: [] }, { dice3d: b, timeout: 5000 });
+    await diceSettled(msg, { dice3d: null, timeout: 5000 });
+    await diceSettled(msg, { dice3d: { waitFor3DAnimationByMessageID: () => { throw new Error("x"); } }, timeout: 5000 });
+    ok(b.asked === 0 && !hasDice({ rolls: [] }) && hasDice(msg), "a message with no roll, a world with no Dice So Nice and a board that throws do not wait");
+  }
+  const host = src["host.mjs"];
+  const on = host.slice(host.indexOf("  onMessage(message) {"), host.indexOf("  /** The press a Hero Point spent now streaks to"));
+  ok(/diceSettled\(message\)\.then\(/.test(on) && on.indexOf("diceSettled(message)") < on.indexOf("D.echo(b, e)") && !/D\.echo\(b, e\)/.test(on.slice(0, on.indexOf("diceSettled(message)"))), "the echo prints only after the dice have landed");
+  ok(on.indexOf("this.pending = null") < on.indexOf("diceSettled(message)"), "the press is matched at once, while it is still the pending one");
+  ok(/this\.root\?\.querySelector\(p\.sel\)/.test(on.slice(on.indexOf("diceSettled(message)"))), "the button is looked up after the wait: the rail may have been redrawn");
+  for (const [file, what] of [["scripts/features/pf2e-variant-rules/chip.mjs", "chip damage"], ["scripts/features/pf2e-odds/observe.mjs", "the odds ledger"], ["scripts/features/critical/module.js", "the critical cut-in"]]) {
+    ok(/from "\.\.\/\.\.\/core\/dice-wait\.mjs"/.test(read(file)) && /diceSettled\(message/.test(read(file)), `${what} waits for the dice through core/dice-wait.mjs`);
+  }
+  console.log(`${problems.length === before ? "✓" : "✗"} a result is shown only after the dice have landed`);
+}
 
 console.log(problems.length ? `\n${problems.length} problem(s):\n  ${problems.join("\n  ")}` : `\nall ${passed} checks passed`);
 process.exit(problems.length ? 1 : 0);

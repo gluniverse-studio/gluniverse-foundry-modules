@@ -20,6 +20,7 @@
 
 import { SUITE_ID, warn } from "../../core/const.mjs";
 import { emitSocket } from "../../core/socket.mjs";
+import { diceSettled } from "../../core/dice-wait.mjs";
 import { FEATURE_ID, MSG, SETTINGS } from "./constants.mjs";
 import { isCreature, kindOf, partyCharacterIds, partyMode, readLedger } from "./knowledge.mjs";
 import { PARTY, fold, forget as forgetModel } from "./ledger-model.mjs";
@@ -163,7 +164,10 @@ export function onChatMessage(message) {
     if (!found.length) return;
     const owners = ownersFor(rollerActor, targetActor, originActor);
     const at = message.timestamp ?? Date.now();
-    write((ledger) => {
+    /* What the party learns from a roll, it learns when the dice stop: a
+       chance that narrows while they are still in the air says how the roll
+       went. The card is read above, at once; only the write waits. */
+    diceSettled(message).then(() => write((ledger) => {
       let next = ledger;
       let changed = false;
       for (const obs of found) {
@@ -176,7 +180,7 @@ export function onChatMessage(message) {
       }
       // Nothing narrowed: no world-setting write, no broadcast, no redraw.
       return changed ? next : ledger;
-    });
+    })).catch((error) => warn("pf2e-odds | could not file a check card", error));
   } catch (error) {
     warn("pf2e-odds | could not read a check card", error);
   }

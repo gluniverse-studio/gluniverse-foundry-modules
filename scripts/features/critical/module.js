@@ -5,6 +5,7 @@ import {
 import { cssVar, motionScale } from "../../core/theme.mjs";
 import { onSocket, emitSocket } from "../../core/socket.mjs";
 import { clamp, clamp01, clampNumber } from "../../core/util.mjs";
+import { diceSettled } from "../../core/dice-wait.mjs";
 import { Surfaces } from "../../core/gl-surfaces.mjs";
 import { Budget } from "../../core/budget.mjs";
 import { warmAtIdle, warmPixi } from "../../core/warmup.mjs";
@@ -1179,21 +1180,11 @@ function registerDetector() {
  * completion wins) and guarantees detection still runs when the signal is lost.
  */
 async function waitForDiceThenProcess(adapter, message) {
-  const dsn = game.dice3d;
-  if (dsn && typeof dsn.waitFor3DAnimationByMessageID === "function" && message.id) {
-    try {
-      await Promise.race([
-        Promise.resolve(dsn.waitFor3DAnimationByMessageID(message.id)),
-        sleep(DSN_ANIMATION_WAIT_TIMEOUT_MS)
-      ]);
-    } catch (err) {
-      console.warn(`${MODULE_ID} | ${FEATURE_ID} | failed waiting for Dice So Nice animation:`, err);
-    }
-  }
+  // core/dice-wait.mjs yields one task first: Dice So Nice marks the message as
+  // animating in its own createChatMessage hook, which may run after this one,
+  // and asked before that it answers "nothing is rolling".
+  await diceSettled(message, { timeout: DSN_ANIMATION_WAIT_TIMEOUT_MS });
   processMessage(adapter, message);
-}
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 function messageAuthorId(message) {
   return message.author?.id ?? (typeof message.user === "string" ? message.user : message.user?.id);

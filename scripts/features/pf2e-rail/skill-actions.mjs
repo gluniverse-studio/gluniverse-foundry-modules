@@ -118,27 +118,31 @@ export function matches(a, q, skillName) {
 /**
  * The finder model.
  *
+ * `rows` is the skill sheet: Perception, the sixteen skills in the sheet's
+ * own order (by name) and the Lores, every one of them always there, each
+ * carrying its plain check and every action that skill can roll. An action
+ * several skills can roll (Recall Knowledge, Escape, Earn Income) stands in
+ * each of their rows and is rolled with that row's skill, so the player picks
+ * the skill by picking the row. `actions` is the same catalogue once per
+ * action, at the character's best skill, for the rail's keys.
+ *
  * @param {{
  *   skills: Record<string, {slug, name, mod, rank}>,    // skills, perception, the saves
  *   lores?: Array<{slug, name, mod, rank}>,
  *   names?: Record<string, string>,                       // PF2e's localised action names
  *   target?: {name, img, known?, defences: Record<string, number|{lo,hi}|null>, recallSkill?, recallDC?} | null,
- *   pins?: string[], query?: string, group?: string, sel?: number,
+ *   pins?: string[], query?: string, sel?: number,
  *   mode?: "encounter"|"exploration", map?: 0|1|2, mapStep?: number,
  *   t: (key, data) => string,
  * }} o
  */
 export function finderModel(o) {
-  const { skills, lores = [], names = {}, target = null, pins = [], query = "", group = "all", mode = "encounter", map = 0, mapStep = 5, t } = o;
+  const { skills, lores = [], names = {}, target = null, pins = [], query = "", mode = "encounter", map = 0, mapStep = 5, t } = o;
   const pinned = new Set(pins);
-  const actions = [];
-  for (const a of SKILL_ACTIONS) {
-    if (mode === "encounter" && (a.exploration || a.downtime) && !pinned.has(a.slug)) continue;
-    if (mode === "exploration" && a.downtime && group !== "downtime" && !query) continue;
-    const skill = pickSkill(a, skills, { recallSkill: target?.recallSkill, lores });
-    if (!skill) continue;
+  /* An encounter shows what can be done in one; typing finds anything. */
+  const offered = (a) => !!query || pinned.has(a.slug) || mode !== "encounter" || !(a.exploration || a.downtime);
+  const entry = (a, skill) => {
     const name = names[a.slug] ?? a.name;
-    if (!matches({ ...a, name, slugName: a.name }, query, skill.name)) continue;
     const locked = a.trained && !(skill.rank > 0) ? t("GLRAIL.prof.1") : null;
     /* the defence: the target's, as the party knows it, or the action's own */
     let vs = null;
@@ -156,42 +160,70 @@ export function finderModel(o) {
     } else if (a.dc != null) {
       vs = { stat: "dc", label: t("GLRAIL.spell.dc"), dc: a.dc, chance: oddsOf({ mod: skill.mod, dc: a.dc }).headline?.lo ?? null, degrees: degrees(skill.mod, a.dc) };
     }
-    actions.push({
+    return {
       id: a.slug, slug: a.slug, name, cost: a.cost, group: a.group, pinned: pinned.has(a.slug),
       skill: { slug: skill.slug, name: skill.name, mod: skill.mod, rank: skill.rank },
       attack: !!a.attack, variants: a.attack ? [0, 1, 2].map((i) => sign(skill.mod - i * mapStep)) : null,
       mapMod: a.attack ? skill.mod - map * mapStep : null,
       vs, locked, secret: !!a.secret, note: a.note ?? null,
-    });
+    };
+  };
+
+  const actions = [];
+  for (const a of SKILL_ACTIONS) {
+    if (!offered(a)) continue;
+    const skill = pickSkill(a, skills, { recallSkill: target?.recallSkill, lores });
+    if (!skill) continue;
+    if (!matches({ ...a, name: names[a.slug] ?? a.name, slugName: a.name }, query, skill.name)) continue;
+    actions.push(entry(a, skill));
   }
   /* Pinned first (the sort is stable, so the book's order otherwise). */
   actions.sort((x, y) => Number(y.pinned) - Number(x.pinned));
-  /* The columns: one per skill an action is rolled with, best modifier
-     first; a trained-only action under an untrained skill cannot be taken,
-     so it is not drawn; the untrained skills' remaining actions share one
-     column, last. The column's head is that skill's plain check. */
-  const CHECK_OF = { perception: "perception", fortitude: "fortitude", reflex: "reflex", will: "will" };
-  const byKey = new Map();
-  for (const a of actions) {
-    if (a.locked) continue;
-    const untrained = a.skill.rank === 0 && skills[a.skill.slug]?.kind === "skill";
-    const key = untrained ? "untrained" : a.skill.slug;
-    if (!byKey.has(key)) byKey.set(key, untrained
-      ? { key, name: t("GLRAIL.skill.untrained"), mod: null, rank: null, actions: [] }
-      : { key, name: a.skill.name, mod: a.skill.mod, rank: a.skill.rank ?? null, check: CHECK_OF[key] ?? (skills[key]?.kind === "skill" || lores.some((l) => l.slug === key) ? `skill:${key}` : null), actions: [] });
-    byKey.get(key).actions.push(a);
+
+  /* The sheet. A statistic with no row of its own (Unarmed for Escape,
+     Reflex for Grab an Edge) competes inside the rows the action does
+     have: the roll is the better of the two. A trained-only action under
+     an untrained skill cannot be taken, so it is not drawn. */
+  const CHECK_OF = { perception: "perception" };
+  const byName = (x, y) => String(x.name).localeCompare(String(y.name));
+  const sheet = [
+    ...(skills.perception ? [{ sk: skills.perception }] : []),
+    ...Object.values(skills).filter((sk) => sk.kind === "skill").sort(byName).map((sk) => ({ sk })),
+    ...[...lores].sort(byName).map((sk) => ({ sk, lore: true })),
+  ];
+  const isRow = new Set(sheet.map((r) => r.sk.slug));
+  const rows = [];
+  for (const { sk, lore = false } of sheet) {
+    const named = !!query && matches({ name: sk.name }, query, "");
+    const list = [];
+    for (const a of SKILL_ACTIONS) {
+      if (!offered(a)) continue;
+      if (!(lore ? a.stats.includes("lore") || a.recall : a.stats.includes(sk.slug))) continue;
+      const rival = a.stats.filter((s) => !isRow.has(s) && skills[s]).map((s) => skills[s]);
+      const skill = rival.reduce((best, s) => (s.mod > best.mod ? s : best), sk);
+      const e = entry(a, skill);
+      if (e.locked) continue;
+      if (query && !named && !matches({ ...a, name: e.name, slugName: a.name }, query, "")) continue;
+      list.push({ ...e, stat: sk.slug });
+    }
+    if (query && !named && !list.length) continue;
+    rows.push({ key: sk.slug, name: sk.name, mod: sk.mod, rank: sk.rank ?? null, check: CHECK_OF[sk.slug] ?? `skill:${sk.slug}`, ...(lore ? { lore: true } : {}),
+      /* found by one of its actions only: the check is drawn, and the keys skip it */
+      ...(query && !named ? { aside: true } : {}), actions: list });
   }
-  const columns = [...byKey.values()].sort((x, y) => (x.key === "untrained") - (y.key === "untrained") || (y.mod ?? 0) - (x.mod ?? 0));
-  /* Skills with no column here, and the Lores, are plain checks along the foot. */
-  const checks = Object.values(skills).filter((sk) => sk.kind === "skill" && !byKey.has(sk.slug)).concat(lores.filter((l) => !byKey.has(l.slug)))
-    .filter((sk) => matches({ name: sk.name }, query, "")).sort((x, y) => y.mod - x.mod);
-  return { target: target ? { name: target.name, img: target.img, known: target.known ?? null } : null, query, group, sel: o.sel ?? 0, map, actions, columns, checks };
+  return { target: target ? { name: target.name, img: target.img, known: target.known ?? null } : null, query, sel: o.sel ?? 0, map, actions, rows };
+}
+
+/** The Skills tab's plain checks: every skill and Lore, in the sheet's
+ *  order. Perception is on the vitals plate already. */
+export function checksOf(model) {
+  return model.rows.filter((r) => r.key !== "perception").map((r) => ({ key: r.key, name: r.name, mod: r.mod, rank: r.rank, check: r.check, ...(r.lore ? { lore: true } : {}) }));
 }
 
 /** The Skills tab's keys: what is worth reaching for right now. Pins first,
  *  then — with a target — the actions against it with the best odds, then
  *  the mode's staples. */
-export function suggested(model, { limit = 8, mode = "encounter" } = {}) {
+export function suggested(model, { limit = 6, mode = "encounter" } = {}) {
   const staple = mode === "encounter" ? ["demoralize", "recall-knowledge", "grapple", "trip", "feint", "hide", "seek", "administer-first-aid"]
     : ["seek", "recall-knowledge", "avoid-notice", "sense-direction", "treat-wounds", "track", "gather-information", "climb"];
   const by = new Map(model.actions.map((a) => [a.slug, a]));

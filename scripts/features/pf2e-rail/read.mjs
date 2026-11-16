@@ -17,7 +17,7 @@
  */
 import { readPf2eDead, readPf2eDying } from "../../core/pf2e-dying.mjs";
 import { SAVES, STANDARD_EXPLORATION, STD_EXPLORE } from "./const.mjs";
-import { finderModel, suggested } from "./skill-actions.mjs";
+import { checksOf, finderModel, suggested } from "./skill-actions.mjs";
 
 /** PF2e's sixteen skills, in the sheet's order. */
 export const SKILLS = Object.freeze([
@@ -484,10 +484,10 @@ export const tabsOf = (o) => [
  *  the keys print the MAP step, and the MAP step is a driven value, so a
  *  model that carried them would redraw the rail on every attack. */
 export function withSkills(deck, sk, { mode, map, t }) {
-  const all = finderModel({ ...sk, query: "", group: "all", mode, map, t });
+  const all = finderModel({ ...sk, query: "", mode, map, t });
   return {
     ...deck,
-    skills: { ...deck.skills, target: all.target, suggested: suggested(all, { mode }) },
+    skills: { ...deck.skills, target: all.target, checks: checksOf(all), suggested: suggested(all, { mode }) },
     tabs: deck.tabs.map((x) => (x.key === "skills" ? { ...x, count: all.actions.length } : x)),
   };
 }
@@ -580,6 +580,39 @@ export function inlineText(s, { loc = (k) => k, config = {} } = {}) {
     .replace(/\s+([,.;:])/g, "$1").replace(/\s+/g, " ").trim();
 }
 
+/* ── the stat block's quiet half ──────────────────────────────────
+   What a creature does without a press: what changes the damage it takes,
+   what it perceives with, how it moves, what it speaks, and every ability
+   with no action to take (an aura, a Ferocity). Reactions and free actions
+   are presses already, among the creature's moves. The
+   labels are PF2e's own: an IWR's `label` already carries its value and
+   its exceptions, a sense's its acuity and range. */
+const capWord = (w) => String(w).charAt(0).toUpperCase() + String(w).slice(1);
+const labelOf = (x, ctx) => {
+  const own = typeof x?.label === "string" ? x.label.trim() : "";
+  if (own) return own;
+  const type = capWord(String(x?.type ?? x?.slug ?? "").replace(/-/g, " "));
+  const n = num(x?.value ?? x?.range);
+  return [type, n != null ? String(n) : ""].filter(Boolean).join(" ");
+};
+
+export function statOf(actor, ctx) {
+  const a = actor.system?.attributes ?? {};
+  const iwr = [["immune", a.immunities], ["weak", a.weaknesses], ["resist", a.resistances]]
+    .flatMap(([k, xs]) => list(xs).map((x) => ({ k, text: labelOf(x, ctx) })).filter((x) => x.text));
+  const speeds = Object.entries(actor.system?.movement?.speeds ?? {}).filter(([, v]) => num(v?.value) > 0)
+    .map(([type, v]) => `${typeof v.label === "string" && v.label ? v.label : capWord(type)} ${ctx.t("GLRAIL.speed", { n: v.value })}`);
+  const langs = ctx.config?.languages ?? {};
+  const passives = list(actor.itemTypes?.action).filter((i) => (i.system?.actionType?.value ?? "passive") === "passive")
+    .map((i) => ({ id: i.id, name: i.name, text: inlineText(stripHTML(i.system?.description?.value), ctx) }));
+  return {
+    iwr, passives,
+    senses: list(actor.system?.perception?.senses).map((s) => labelOf(s, ctx)).filter(Boolean),
+    speeds,
+    languages: list(actor.system?.details?.languages?.value).map((l) => (langs[l] ? ctx.loc(langs[l]) : capWord(String(l).replace(/-/g, " ")))),
+  };
+}
+
 export function creatureOf(actor, ctx) {
   const hp = actor.system?.attributes?.hp ?? {};
   const npcStrikes = strikeRows(actor, ctx).map((s) => ({ id: s.id, name: s.name, variants: s.variants, damage: s.damage }));
@@ -590,7 +623,7 @@ export function creatureOf(actor, ctx) {
     ac: num(actor.armorClass?.value ?? actor.system?.attributes?.ac?.value, 10),
     hp: { value: num(hp.value, 0), max: num(hp.max, 0) }, ...checkMods(actor),
     recallDC: num(actor.identificationDCs?.standard?.dc),
-    strikes: npcStrikes, abilities, ...(adjust ? { adjust } : {}),
+    strikes: npcStrikes, abilities, stat: statOf(actor, ctx), ...(adjust ? { adjust } : {}),
   };
 }
 

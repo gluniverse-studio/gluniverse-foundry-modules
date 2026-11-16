@@ -32,6 +32,7 @@ import { SUITE_ID, warn } from "../../core/const.mjs";
 import * as V from "./view.mjs";
 import * as D from "./drive.mjs";
 import * as S from "./shape.mjs";
+import { diceSettled } from "../../core/dice-wait.mjs";
 import * as K from "./skill-actions.mjs";
 import { EXPLORE_PACK, STANDARD_EXPLORATION, STD_EXPLORE, TIMING } from "./const.mjs";
 import { RailLight } from "./light.mjs";
@@ -90,7 +91,7 @@ export class RailHost {
     this.cache = new Map();
     this.open = { drawer: null };
     this.peek = null;
-    this.fs = { open: false, query: "", group: "all", sel: 0, settled: false, expanded: [] };
+    this.fs = { open: false, query: "", sel: 0, settled: false };
     this.pending = null;
     /* the press the last roll echoed on: a Hero Point spent on its reroll streaks there */
     this.lastEcho = null;
@@ -382,7 +383,10 @@ export class RailHost {
     if (key !== this.subjectKey) {
       this.subjectKey = key;
       this.fs = { ...this.fs, open: false };
-      this.open.drawer = null; this.peek = null;
+      /* The GM's stat block stays open from creature to creature: reading
+         one after another is what it is for. */
+      if (!(this.open.drawer === "statblock" && model.creature)) this.open.drawer = null;
+      this.peek = null;
       this.model = model;
       this.render({ arrive: true });
     } else {
@@ -403,10 +407,10 @@ export class RailHost {
 
   /* ── drawing (the preview's compose/render/update) ─────────── */
 
-  finder(query = this.fs.query, group = this.fs.group) {
+  finder(query = this.fs.query) {
     const m = this.model;
     if (!m?.sk) return null;
-    return { ...K.finderModel({ ...m.sk, query, group, sel: this.fs.sel, mode: m.mode ?? "encounter", map: m.turnbar?.map ?? 0, t }), expanded: this.fs.expanded };
+    return { ...K.finderModel({ ...m.sk, query, sel: this.fs.sel, mode: m.mode ?? "encounter", map: m.turnbar?.map ?? 0, t }) };
   }
 
   compose() {
@@ -478,6 +482,7 @@ export class RailHost {
       return { title: t("GLRAIL.drawer.macros"), body: V.MACROS({ page, slots: macroSlots(game.user.getHotbarMacros(page)) }, t) };
     }
     if (kind === "ranks" && m.deck?.spells) return { title: t("GLRAIL.spell.hand"), note: m.deck.spells.dc != null ? `${t("GLRAIL.skill.dcShort", { dc: m.deck.spells.dc })}` : "", body: V.RANKS(m.deck.spells, t) };
+    if (kind === "statblock") return m.creature ? { title: m.creature.name, note: t("GLRAIL.drawer.statblock"), wide: true, body: V.STATBLOCK(m.creature, t) } : null;
     if (kind === "foes") return { title: t("GLRAIL.drawer.foes"), note: String(m.foes?.foes?.length ?? 0), body: V.DLIST({ rows: (m.foes?.foes ?? []).map((f) => ({ key: `foe:${f.id}`, act: true, name: f.name, icon: f.img, meta: `${t("GLRAIL.gm.level", { n: f.level })} · ${t(`GLRAIL.disp.${f.disp}`)}`, n: f.hp ? `${f.hp[0]}/${f.hp[1]}` : null })) }, t) };
     if (!actor) return null;
     if (kind === "inventory") return { title: t("GLRAIL.drawer.inventory"), body: V.DLIST({ rows: inventoryRows(actor, t) }, t) };
@@ -496,13 +501,13 @@ export class RailHost {
     else setTimeout(() => { this.fs.settled = true; f.setAttribute("data-settled", ""); }, D.token(f, "--gl-d-glide", 900));
     const input = f.querySelector("[data-find]");
     if (input) { input.focus(); const n = input.value.length; input.setSelectionRange(n, n); }
-    f.querySelector(".gph-fa.is-sel")?.scrollIntoView({ block: "nearest" });
+    f.querySelector("[data-k].is-sel")?.scrollIntoView({ block: "nearest" });
   }
 
-  redrawFinder({ slide = false, pinned = null, opened = null } = {}) {
+  redrawFinder({ slide = false, pinned = null } = {}) {
     const root = this.root, old = root?.querySelector("[data-finder]");
     if (!old) return this.render();
-    const from = slide ? old.querySelector(".gph-fa.is-sel")?.getBoundingClientRect() : null;
+    const from = slide ? old.querySelector("[data-k].is-sel")?.getBoundingClientRect() : null;
     const scroll = old.querySelector(".gph-results")?.scrollTop ?? 0;
     old.insertAdjacentHTML("afterend", V.FINDER(this.finder(), t));
     old.remove();
@@ -510,15 +515,12 @@ export class RailHost {
     f.querySelector(".gph-results").scrollTop = scroll;
     this.settleFinder();
     if (from) D.slideSel(f, from);
-    if (pinned) f.querySelector(`[data-skill-action="${CSS.escape(pinned)}"]`)?.classList.add("is-pinning");
-    if (opened) f.querySelectorAll(".gph-scol").forEach((c) => {
-      if (c.querySelector(`[data-check="skill:${CSS.escape(opened)}"], [data-check="${CSS.escape(opened)}"]`) || (opened === "untrained" && c.classList.contains("is-untrained"))) c.classList.add("is-opening");
-    });
+    if (pinned) for (const b of f.querySelectorAll(`[data-skill-action="${CSS.escape(pinned)}"]`)) b.closest(".gph-fa")?.classList.add("is-pinning");
   }
 
   openFinder(query = "") {
     if (!this.model?.sk) return;
-    this.fs = { ...this.fs, open: true, query, group: "all", sel: 0, settled: false, expanded: [] };
+    this.fs = { ...this.fs, open: true, query, sel: 0, settled: false };
     this.open.drawer = null; this.peek = null;
     this.render();
   }
@@ -623,7 +625,7 @@ export class RailHost {
   expect(button) {
     const actor = this.subj?.actor;
     if (!actor || !button) return;
-    const sel = ["data-strike", "data-variant", "data-dmg", "data-crit", "data-check", "data-skill-action"]
+    const sel = ["data-strike", "data-variant", "data-dmg", "data-crit", "data-check", "data-skill-action", "data-stat"]
       .filter((a) => button.hasAttribute(a)).map((a) => `[${a}="${CSS.escape(button.getAttribute(a))}"]`).join("");
     this.pending = { actorId: actor.id, at: Date.now(), sel };
   }
@@ -638,8 +640,17 @@ export class RailHost {
     else return;
     const e = echoOf(message, { userId, stream: this.stream, degreeShown: seesTruth() || metagame("results"), words: WORDS() });
     if (!e) return;
-    const b = p.sel ? this.root?.querySelector(p.sel) : null;
-    if (b) { D.echo(b, e); this.lastEcho = { actorId: p.actorId, sel: p.sel, at: now }; }
+    /* The message exists seconds before Dice So Nice's dice stop. The press
+       is matched now, while it is still the pending one, and the number is
+       held until the dice have landed: printed at once it gives the roll
+       away under the dice still tumbling. The button is looked up after the
+       wait, since the rail may have been redrawn meanwhile. */
+    const subject = this.subj?.actor?.id ?? null;
+    diceSettled(message).then(() => {
+      if ((this.subj?.actor?.id ?? null) !== subject) return;
+      const b = p.sel ? this.root?.querySelector(p.sel) : null;
+      if (b) { D.echo(b, e); this.lastEcho = { actorId: p.actorId, sel: p.sel, at: Date.now() }; }
+    });
   }
 
   /** The press a Hero Point spent now streaks to: the last roll echoed for
@@ -726,8 +737,7 @@ export class RailHost {
       if (d.rankStep) return this.stepRank(+d.rankStep);
       if (d.row) return this.pressRow(d.row, e);
       if (d.foe) return this.controlToken(d.foe);
-      if (d.act === "expand-col") { this.fs = { ...this.fs, expanded: [...this.fs.expanded, d.col], settled: true }; return this.redrawFinder({ opened: d.col }); }
-      if (d.skillAction) return this.useSkillAction(d.skillAction, d.variant != null ? +d.variant : undefined, e, b);
+      if (d.skillAction) return this.useSkillAction(d.skillAction, d.variant != null ? +d.variant : undefined, e, b, null, d.stat ?? null);
       if (d.variant != null && d.strike) {
         if (b.getAttribute("aria-disabled") === "true") return this.deny(b.closest(".gph-stk, .gph-nstk") ?? b);
         this.expect(b);
@@ -775,9 +785,11 @@ export class RailHost {
     return s[what]?.({ event });
   }
 
-  async useSkillAction(id, variant, event, button, kind = null) {
-    const f = this.finder("", "all");
-    const a = f?.actions.find((x) => x.id === id);
+  /** `stat` is the sheet row the press stands in: an action several skills
+   *  can roll is rolled with that row's, not with the character's best. */
+  async useSkillAction(id, variant, event, button, kind = null, stat = null) {
+    const f = this.finder("");
+    const a = (stat ? f?.rows.find((r) => r.key === stat)?.actions.find((x) => x.id === id) : null) ?? f?.actions.find((x) => x.id === id);
     const actor = this.subj?.actor;
     if (!a || !actor) return;
     if (a.locked) { ui.notifications?.info?.(t("GLRAIL.skill.locked", { name: a.name, rank: a.locked })); return; }
@@ -792,7 +804,7 @@ export class RailHost {
     if (!kind && variants.length > 1) {
       return this.showPeek({ name: a.name, from: `${a.skill.name} ${(a.mapMod ?? a.skill.mod) < 0 ? "−" : "+"}${Math.abs(a.mapMod ?? a.skill.mod)}`,
         actions: variants.map((x) => ({ id: `variant:${x.slug}`, label: game.i18n.localize(x.name ?? x.slug), ...(a.cost != null ? { cost: a.cost } : {}) })) },
-        button, { kind: "variant", id: a.id, anchor: `[data-skill-action="${CSS.escape(a.id)}"]` });
+        button, { kind: "variant", id: a.id, stat, anchor: `[data-skill-action="${CSS.escape(a.id)}"]${stat ? `[data-stat="${CSS.escape(stat)}"]` : ""}` });
     }
     const ctx = this.spendCtx();
     if (action) await action.use({ actors: [actor], statistic: a.skill.slug, event, ...(kind ? { variant: kind } : {}), ...(a.attack ? { multipleAttackPenalty: map } : {}) });
@@ -846,7 +858,7 @@ export class RailHost {
     if (p.kind === "variant" && pa.startsWith("variant:")) {
       const button = this.root?.querySelector(p.anchor);
       this.closePeek();
-      return this.useSkillAction(p.id, undefined, event, button, pa.slice(8));
+      return this.useSkillAction(p.id, undefined, event, button, pa.slice(8), p.stat ?? null);
     }
     if (p.kind === "strike" && pa === "post") { const s = list(actor.system?.actions)[+p.id]; this.closePeek(); return s?.item?.toMessage(event); }
   }
@@ -899,7 +911,7 @@ export class RailHost {
   }
 
   controlToken(id) {
-    this.open.drawer = null;
+    if (this.open.drawer !== "statblock") this.open.drawer = null;
     return this.pick(canvas?.tokens?.get(id));
   }
 
@@ -979,7 +991,7 @@ export class RailHost {
     const c = e.target.closest("[data-finder] .gph-fa");
     if (!c) return;
     e.preventDefault();
-    this.togglePin(c.dataset.skillAction);
+    this.togglePin(pressOf(c).dataset.skillAction);
   }
 
   onOver(e) {
@@ -1019,7 +1031,8 @@ export class RailHost {
     if (!this.root || (!this.peek && !this.open.drawer)) return;
     if (e.target?.closest?.("#gph-host :is(.gph-rail, .gph-stack, .gph-drawer, .gph-peek, .gph-finder)")) return;
     this.closePeek();
-    if (this.open.drawer) { this.open.drawer = null; this.render(); }
+    /* The stat block is read while the GM picks creatures on the canvas. */
+    if (this.open.drawer && this.open.drawer !== "statblock") { this.open.drawer = null; this.render(); }
   }
 
   onKey(e) {
@@ -1027,21 +1040,23 @@ export class RailHost {
     const inField = e.target.closest?.("[data-find]");
     const eat = () => { e.preventDefault(); e.stopPropagation(); };
     if (this.fs.open) {
-      const cards = [...this.root.querySelectorAll("[data-finder] .gph-fa")];
+      /* Every key the sheet draws, in reading order: a row's check, then
+         its actions. Left and right step along; up and down change row. */
+      const cards = [...this.root.querySelectorAll("[data-finder] [data-k]")];
+      const go = (i) => { this.fs.sel = Math.max(0, Math.min(cards.length - 1, i)); this.fs.settled = true; return this.redrawFinder({ slide: true }); };
       if (e.key === "Escape") { eat(); return this.closeFinder(); }
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") { eat(); this.fs.sel = Math.max(0, Math.min(cards.length - 1, this.fs.sel + (e.key === "ArrowDown" ? 1 : -1))); this.fs.settled = true; return this.redrawFinder({ slide: true }); }
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        if (inField && e.target.value) return;
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") { if (inField && e.target.value) return; eat(); return go(this.fs.sel + (e.key === "ArrowRight" ? 1 : -1)); }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         eat();
-        const cols = [...this.root.querySelectorAll("[data-finder] .gph-scol")];
-        const at = cols.findIndex((c) => c.contains(cards[this.fs.sel]));
-        const first = cols[Math.max(0, Math.min(cols.length - 1, at + (e.key === "ArrowRight" ? 1 : -1)))]?.querySelector(".gph-fa");
-        if (first) { this.fs.sel = +first.dataset.k; this.fs.settled = true; this.redrawFinder({ slide: true }); }
-        return;
+        const rows = [...this.root.querySelectorAll("[data-finder] .gph-skrow")].filter((r) => r.querySelector("[data-k]"));
+        const at = rows.findIndex((r) => r.contains(cards[this.fs.sel]));
+        const first = rows[Math.max(0, Math.min(rows.length - 1, at + (e.key === "ArrowDown" ? 1 : -1)))]?.querySelector("[data-k]");
+        return first ? go(+first.dataset.k) : undefined;
       }
-      if (e.key === "Enter") { eat(); const c = cards[this.fs.sel]; if (c) this.useSkillAction(c.dataset.skillAction, undefined, e, c); return; }
-      if (/^[123]$/.test(e.key) && (!inField || !e.target.value)) { const c = cards[this.fs.sel]; if (c?.hasAttribute("data-attack")) { eat(); this.useSkillAction(c.dataset.skillAction, +e.key - 1, e, c); } return; }
-      if ((e.key === "p" || e.key === "P") && (!inField || !e.target.value)) { const c = cards[this.fs.sel]; if (c) { eat(); this.togglePin(c.dataset.skillAction); } return; }
+      const c = cards[this.fs.sel], free = !inField || !e.target.value;
+      if (e.key === "Enter") { eat(); if (c) pressOf(c).click(); return; }
+      if (/^[123]$/.test(e.key) && free) { const step = c?.querySelector(`[data-variant="${+e.key - 1}"]`); if (step) { eat(); step.click(); } return; }
+      if ((e.key === "p" || e.key === "P") && free) { const id = c ? pressOf(c).dataset.skillAction : null; if (id) { eat(); this.togglePin(id); } return; }
       return;
     }
     if (inField) return;
@@ -1053,6 +1068,10 @@ export class RailHost {
     if (e.key === "Escape" && (this.peek || this.open.drawer)) { eat(); this.closePeek(); if (this.open.drawer) { this.open.drawer = null; this.render(); } }
   }
 }
+
+/** A sheet key's own press: the key itself, or — where an attack-trait
+ *  action carries its MAP steps beside it — the button with its name. */
+const pressOf = (key) => (key.matches("button") ? key : key.querySelector("button"));
 
 /** For the check tool and the docs: the skill catalogue's slugs, and PF2e's
  *  sixteen skills, are what the host addresses PF2e with. */
