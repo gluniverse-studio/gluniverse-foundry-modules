@@ -165,7 +165,7 @@ try {
   if (q.get('next') === '1' && model.turnbar?.mode === 'encounter') model.turnbar = { ...model.turnbar, mine: false, current: model.turnbar.current ?? 'Kyra', map: 0, next: true };
   let open = { drawer: q.get('drawer'), peek: q.get('peek') };
   /* the finder's own state: open, what is typed, the group, the selection */
-  let fs = { open: q.get('finder') === '1', query: q.get('q') ?? '', group: 'all', sel: +(q.get('sel') ?? 0), settled: false, expanded: [] };
+  let fs = { open: q.get('finder') === '1', query: q.get('q') ?? '', sel: +(q.get('sel') ?? 0), settled: false };
   let prev = null;
 
   const toast = (msg) => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1600); };
@@ -173,19 +173,19 @@ try {
   /* The finder and the Skills tab, built from the fixture's inputs by the
      shipped pure module, exactly as the Foundry host will. */
   const mapNow = () => model.turnbar?.map ?? 0;
-  function finder(query = fs.query, group = fs.group) {
+  function finder(query = fs.query) {
     if (!model.sk) return null;
-    return { ...K.finderModel({ ...model.sk, query, group, sel: fs.sel, mode: model.mode, map: mapNow(), t }), expanded: fs.expanded };
+    return { ...K.finderModel({ ...model.sk, query, sel: fs.sel, mode: model.mode, map: mapNow(), t }) };
   }
   function compose() {
     const o = { ...model, util: { ...(model.util ?? {}), open: open.drawer } };
     if (o.deck && model.sk) {
-      const all = finder('', 'all');
-      o.deck = { ...o.deck, skills: { ...o.deck.skills, target: all.target, suggested: K.suggested(all, { mode: model.mode }) } };
-      o.deck.tabs = o.deck.tabs.map((x) => (x.key === 'skills' ? { ...x, count: all.actions.length } : x));
+      const all = finder('');
+      o.deck = { ...o.deck, skills: { ...o.deck.skills, target: all.target, checks: K.checksOf(all), suggested: K.suggested(all, { mode: model.mode }) } };
     }
     if (fs.open && model.sk) o.overlay = V.FINDER(finder(), t);
-    else if (open.drawer && DRAWER_BODIES[open.drawer]) o.overlay = V.DRAWER(DRAWER_BODIES[open.drawer](V, t, art, model));
+    else if (open.drawer && DRAWER_BODIES[open.drawer]) { const d = DRAWER_BODIES[open.drawer](V, t, art, model, { called: q.get('called') === '1' }); if (d) o.overlay = V.DRAWER(d); }
+    if (q.get('call') && model.role !== 'gm') o.call = { id: 'c1', check: 'skill:athletics', name: 'Athletics', mod: 15, ...(q.get('call') === 'dc' ? { dc: 20 } : {}) };
     return o;
   }
   const light = new RailLight();
@@ -222,12 +222,12 @@ try {
     else setTimeout(() => { fs.settled = true; f.setAttribute('data-settled', ''); }, 900);
     const input = f.querySelector('[data-find]');
     if (input && q.get('still') !== '1') { input.focus(); const n = input.value.length; input.setSelectionRange(n, n); }
-    f.querySelector('.gph-fa.is-sel')?.scrollIntoView({ block: 'nearest' });
+    f.querySelector('[data-k].is-sel')?.scrollIntoView({ block: 'nearest' });
   }
-  function redrawFinder({ slide = false, pinned = null, opened = null } = {}) {
+  function redrawFinder({ slide = false, pinned = null } = {}) {
     const root = host.firstElementChild, old = root.querySelector('[data-finder]');
     if (!old) return render();
-    const from = slide ? old.querySelector('.gph-fa.is-sel')?.getBoundingClientRect() : null;
+    const from = slide ? old.querySelector('[data-k].is-sel')?.getBoundingClientRect() : null;
     const scroll = old.querySelector('.gph-results')?.scrollTop ?? 0;
     old.insertAdjacentHTML('afterend', V.FINDER(finder(), t));
     old.remove();
@@ -235,10 +235,9 @@ try {
     f.querySelector('.gph-results').scrollTop = scroll;
     settleFinder(root);
     if (from) D.slideSel(f, from);
-    if (pinned) f.querySelector('[data-skill-action="' + pinned + '"]')?.classList.add('is-pinning');
-    if (opened) f.querySelectorAll('.gph-scol').forEach((c) => { if (c.querySelector('[data-check="skill:' + opened + '"], [data-check="' + opened + '"]') || (opened === 'untrained' && c.classList.contains('is-untrained'))) c.classList.add('is-opening'); });
+    if (pinned) f.querySelectorAll('[data-skill-action="' + pinned + '"]').forEach((b) => b.closest('.gph-fa')?.classList.add('is-pinning'));
   }
-  function openFinder(query = '') { fs = { ...fs, open: true, query, group: 'all', sel: 0, settled: false, expanded: [] }; open.drawer = null; open.peek = null; render(); }
+  function openFinder(query = '') { fs = { ...fs, open: true, query, sel: 0, settled: false }; open.drawer = null; open.peek = null; render(); }
   function closeFinder() {
     const f = host.querySelector('[data-finder]');
     fs.open = false;
@@ -246,7 +245,8 @@ try {
     f.classList.add('is-closing');
     setTimeout(() => render(), 130);
   }
-  const shownCards = () => [...host.querySelectorAll('[data-finder] .gph-fa')];
+  const shownCards = () => [...host.querySelectorAll('[data-finder] [data-k]')];
+  const pressOf = (key) => (key.matches('button') ? key : key.querySelector('button'));
   function togglePin(id) { const m = clone(model), p = new Set(m.sk.pins); p.has(id) ? p.delete(id) : p.add(id); m.sk.pins = [...p]; model = m; fs.settled = true; redrawFinder({ pinned: p.has(id) ? id : null }); toast('ph.pins ← ' + JSON.stringify(m.sk.pins)); }
 
   /* ── a roll ── the toast names the PF2e call; the echo shows a made-up
@@ -310,11 +310,12 @@ try {
     m.foes.foes[(at + 1) % m.foes.foes.length].turn = true;
     update(m, { fresh: true });
   }
-  function rollSkillAction(id, variant) {
-    const a = finder('', 'all').actions.find((x) => x.id === id);
+  function rollSkillAction(id, variant, stat, button) {
+    const f = finder('');
+    const a = (stat ? f.rows.find((r) => r.key === stat)?.actions.find((x) => x.id === id) : null) ?? f.actions.find((x) => x.id === id);
     if (!a) return;
     if (a.locked) { toast(t('GLRAIL.prof.1') + ' only'); return; }
-    const b = host.querySelector('[data-finder] [data-skill-action="' + id + '"]') ?? host.querySelector('[data-skill-action="' + id + '"]');
+    const b = button ?? host.querySelector('[data-finder] [data-skill-action="' + id + '"]') ?? host.querySelector('[data-skill-action="' + id + '"]');
     const mod = a.skill.mod - (a.attack ? (variant ?? mapNow()) * 5 : 0);
     const dc = typeof a.vs?.dc === 'number' ? a.vs.dc : null;
     roll(b, mod, a.secret ? null : dc, 'game.pf2e.actions.get("' + a.slug + '").use({ statistic: "' + a.skill.slug + '"' + (a.attack ? ', multipleAttackPenalty: ' + (variant ?? mapNow()) : '') + ' })');
@@ -378,8 +379,7 @@ try {
     if (d.rankStep) { const i = sp.ranks.findIndex((r) => r.key === sp.rank), j = Math.max(0, Math.min(sp.ranks.length - 1, i + +d.rankStep)); if (i === j) return; model = { ...model, deck: { ...model.deck, spells: { ...sp, rank: sp.ranks[j].key } } }; render(); return; }
     if (d.row?.startsWith('rank:')) { const k = d.row.slice(5); model = { ...model, deck: { ...model.deck, spells: { ...sp, rank: /^\\d+$/.test(k) ? +k : k } } }; open.drawer = null; render(); return; }
     if (d.foe) { model = { ...model, foes: { ...model.foes, selected: d.foe } }; render(); toast('token.control()'); return; }
-    if (d.act === 'expand-col') { fs = { ...fs, expanded: [...fs.expanded, d.col], settled: true }; redrawFinder({ opened: d.col }); return; }
-    if (d.skillAction) { rollSkillAction(d.skillAction, d.variant != null ? +d.variant : undefined); return; }
+    if (d.skillAction) { rollSkillAction(d.skillAction, d.variant != null ? +d.variant : undefined, d.stat, b); return; }
     if (d.variant != null && d.strike) {
       const row = b.closest('.gph-stk, .gph-nstk');
       if (b.getAttribute('aria-disabled') === 'true') return deny(row);
@@ -405,7 +405,7 @@ try {
     fs = { ...fs, query: inp.value, sel: 0, settled: true }; redrawFinder();
   });
   /* right-click a finder action to pin it */
-  host.addEventListener('contextmenu', (e) => { const c = e.target.closest('[data-finder] .gph-fa'); if (!c) return; e.preventDefault(); togglePin(c.dataset.skillAction); });
+  host.addEventListener('contextmenu', (e) => { const c = e.target.closest('[data-finder] .gph-fa'); if (!c) return; e.preventDefault(); togglePin(pressOf(c).dataset.skillAction); });
   /* the hover peek: rest 140ms to open, leave for 250ms to close */
   let peekT = 0;
   host.addEventListener('pointerover', (e) => {
@@ -421,11 +421,20 @@ try {
     if (fs.open) {
       const cards = shownCards();
       if (e.key === 'Escape') { e.preventDefault(); closeFinder(); return; }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); fs.sel = Math.max(0, Math.min(cards.length - 1, fs.sel + (e.key === 'ArrowDown' ? 1 : -1))); fs.settled = true; redrawFinder({ slide: true }); return; }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (inField && e.target.value) return; e.preventDefault(); const cols = [...host.querySelectorAll('[data-finder] .gph-scol')]; const at = cols.findIndex((c) => c.contains(cards[fs.sel])); const to = cols[Math.max(0, Math.min(cols.length - 1, at + (e.key === 'ArrowRight' ? 1 : -1)))]; const first = to?.querySelector('.gph-fa'); if (first) { fs.sel = +first.dataset.k; fs.settled = true; redrawFinder({ slide: true }); } return; }
-      if (e.key === 'Enter') { e.preventDefault(); const c = cards[fs.sel]; if (c) rollSkillAction(c.dataset.skillAction); return; }
-      if (/^[123]$/.test(e.key) && (!inField || !e.target.value)) { const c = cards[fs.sel]; if (c?.hasAttribute('data-attack')) { e.preventDefault(); rollSkillAction(c.dataset.skillAction, +e.key - 1); } return; }
-      if ((e.key === 'p' || e.key === 'P') && (!inField || !e.target.value)) { const c = cards[fs.sel]; if (c) { e.preventDefault(); togglePin(c.dataset.skillAction); } return; }
+      const go = (i) => { fs.sel = Math.max(0, Math.min(cards.length - 1, i)); fs.settled = true; redrawFinder({ slide: true }); };
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (inField && e.target.value) return; e.preventDefault(); go(fs.sel + (e.key === 'ArrowRight' ? 1 : -1)); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const rows = [...host.querySelectorAll('[data-finder] .gph-skrow')].filter((r) => r.querySelector('[data-k]'));
+        const at = rows.findIndex((r) => r.contains(cards[fs.sel]));
+        const first = rows[Math.max(0, Math.min(rows.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)))]?.querySelector('[data-k]');
+        if (first) go(+first.dataset.k);
+        return;
+      }
+      const c = cards[fs.sel], free = !inField || !e.target.value;
+      if (e.key === 'Enter') { e.preventDefault(); if (c) pressOf(c).click(); return; }
+      if (/^[123]$/.test(e.key) && free) { const step = c?.querySelector('[data-variant="' + (+e.key - 1) + '"]'); if (step) { e.preventDefault(); step.click(); } return; }
+      if ((e.key === 'p' || e.key === 'P') && free) { const id = c ? pressOf(c).dataset.skillAction : null; if (id) { e.preventDefault(); togglePin(id); } return; }
       return;
     }
     if (inField) return;

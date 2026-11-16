@@ -429,6 +429,7 @@ for (const slug of Object.keys(CONDITIONS)) {
     ok(/metagame\(\s*["']results["']\s*\)/.test(reader), "read.mjs must show a degree to players only under PF2e's 'show results' metagame setting");
     ok(/isContentVisible/.test(reader) && /blind/.test(reader), "read.mjs must refuse a message this viewer cannot read (isContentVisible, blind)");
     ok(!/emitSocket|game\.socket/.test(reader), "read.mjs must not broadcast: every client reads its own chat");
+    ok(/import \{[^}]*\bdiceSettled\b[^}]*\} from "\.\.\/\.\.\/core\/dice-wait\.mjs"/.test(reader) && /diceSettled\(message, \{ timeout: TIMING\.diceWait \* 1000 \}\)/.test(reader) && !/waitFor3DAnimationByMessageID\(|diceSoNiceRollComplete/.test(reader), "read.mjs must wait for the dice through diceSettled (core/dice-wait.mjs) with TIMING.diceWait, never its own copy: a copy without the yield plays the impact before the dice land");
     // an Elemental Blast's origin is the impulse (an action), which the weapon/melee/spell gate drops
     ok(/isBlast\(ctx\)\) void onAttack/.test(reader) && /describeBlast\(/.test(reader), "read.mjs must let an Elemental Blast attack through to onAttack and describe it with describeBlast");
     // a creature's look styles what it does, never the conditions on it

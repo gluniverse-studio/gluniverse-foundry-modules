@@ -14,6 +14,10 @@
  *   - the degree only where the viewer sees the truth, or PF2e's own
  *     metagame setting shows results to players.
  *
+ * When it prints is the host's: after the message's dice have landed
+ * (core/dice-wait.mjs), never as the message arrives, which is seconds
+ * before Dice So Nice stops.
+ *
  * Pure. The host passes the message and the viewer; the answer is
  * `{ total, degree, word }` or null.
  */

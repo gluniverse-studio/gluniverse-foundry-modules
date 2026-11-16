@@ -16,6 +16,7 @@
  */
 
 import { err } from "../../core/const.mjs";
+import { diceSettled } from "../../core/dice-wait.mjs";
 import { DSN_COLORSET, DSN_NAMESPACE, FATED_OPTION, FLAGS, HERO_REROLL_OPTION, MODULE_ID, TIMING } from "./constants.mjs";
 import { degreeKey, refreshRerollTotal, refreshResultFlavor } from "./card.mjs";
 import { naturalOf, normalizeFate, shiftDegree } from "./fate.mjs";
@@ -71,16 +72,7 @@ export function canAddFate(message, user = globalThis.game?.user) {
 }
 
 /** Wait until the check's own 3D dice have landed, so the fate die follows them. */
-async function afterCheckDice(message) {
-  const dice3d = globalThis.game?.dice3d;
-  if (!dice3d?.waitFor3DAnimationByMessageID) return;
-  // DSN marks the message as animating in its own createChatMessage hook.
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await Promise.race([
-    dice3d.waitFor3DAnimationByMessageID(message.id),
-    new Promise((resolve) => setTimeout(resolve, TIMING.diceSettle)),
-  ]);
-}
+const afterCheckDice = (message) => diceSettled(message, { timeout: TIMING.diceSettle });
 
 /** Point the fate roll's die at our Dice So Nice system, whatever the user picked. */
 function tagForDiceSoNice(roll) {

@@ -17,7 +17,7 @@
  */
 import { readPf2eDead, readPf2eDying } from "../../core/pf2e-dying.mjs";
 import { SAVES, STANDARD_EXPLORATION, STD_EXPLORE } from "./const.mjs";
-import { finderModel, suggested } from "./skill-actions.mjs";
+import { checksOf, finderModel, suggested } from "./skill-actions.mjs";
 
 /** PF2e's sixteen skills, in the sheet's order. */
 export const SKILLS = Object.freeze([
@@ -363,11 +363,40 @@ export function itemTiles(actor) {
 
 /* ── skills, for the finder ─────────────────────────────────────── */
 
+/**
+ * How much each further attack costs a skill's attack-trait actions (Trip,
+ * Grapple): 5 by the book. PF2e's own skill actions apply a flat −5/−10 and
+ * consult nothing (`SingleCheckActionVariant#use`), so a rule that lowers it
+ * for a skill is honoured here or nowhere: a MultipleAttackPenalty rule
+ * element whose selector is one of the statistic's own domains and whose
+ * predicate holds. The mildest wins, as in PF2e's `calculateMAPs`. Rules
+ * written for Strikes (selector "attack") are not read: a skill check is not
+ * in that domain, in PF2e or here.
+ */
+export function mapStepOf(actor, statistic) {
+  const all = actor?.synthetics?.multipleAttackPenalties;
+  if (!all || !statistic) return 5;
+  let options = [];
+  try { options = [...(statistic.createRollOptions?.() ?? []), "attack", "self:action:trait:attack"]; } catch { /* a statistic that cannot say is tested bare */ }
+  let best = -5;
+  for (const d of list(statistic.domains)) for (const e of list(all[d])) {
+    const p = num(e?.penalty);
+    let holds = true;
+    try { holds = e?.predicate?.test ? !!e.predicate.test(options) : true; } catch { holds = false; }
+    if (p != null && p <= 0 && p > best && holds) best = p;
+  }
+  return -best;
+}
+
 export function skillsOf(actor) {
   const skills = {};
   for (const slug of SKILLS) {
     const s = actor.skills?.[slug];
-    if (s) skills[slug] = { slug, name: s.label ?? slug, rank: num(s.rank, s.proficient ? 1 : 0), mod: num(s.mod, 0), kind: "skill" };
+    if (s) {
+      const step = mapStepOf(actor, s);
+      /* `listed`: on an NPC every skill exists; these are the stat block's own */
+      skills[slug] = { slug, name: s.label ?? slug, rank: num(s.rank, s.proficient ? 1 : 0), mod: num(s.mod, 0), kind: "skill", ...(s.proficient ? { listed: true } : {}), ...(step !== 5 ? { mapStep: step } : {}) };
+    }
   }
   const per = actor.perception;
   if (per) skills.perception = { slug: "perception", name: per.label ?? "Perception", rank: num(per.rank, 1), mod: num(per.mod, 0) };
@@ -484,11 +513,10 @@ export const tabsOf = (o) => [
  *  the keys print the MAP step, and the MAP step is a driven value, so a
  *  model that carried them would redraw the rail on every attack. */
 export function withSkills(deck, sk, { mode, map, t }) {
-  const all = finderModel({ ...sk, query: "", group: "all", mode, map, t });
+  const all = finderModel({ ...sk, query: "", mode, map, t });
   return {
     ...deck,
-    skills: { ...deck.skills, target: all.target, suggested: suggested(all, { mode }) },
-    tabs: deck.tabs.map((x) => (x.key === "skills" ? { ...x, count: all.actions.length } : x)),
+    skills: { ...deck.skills, target: all.target, checks: checksOf(all), suggested: suggested(all, { mode }) },
   };
 }
 
@@ -567,6 +595,14 @@ export function inlineText(s, { loc = (k) => k, config = {} } = {}) {
   const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
   const skill = (slug) => { const k = config.skills?.[slug]; return k ? loc(k.label ?? k) : cap(String(slug).replace(/-/g, " ")); };
   return String(s ?? "")
+    /* a glossary ability (Regeneration, Ferocity…) is nothing but
+       `@Localize[key]`: its text is the localized string, which carries
+       markup and inline syntax of its own. An unknown key reads as nothing. */
+    .replace(/@Localize\[([^\]]*)\](?:\{([^}]*)\})?/g, (_, key, label) => {
+      if (label) return label;
+      const v = loc(key);
+      return v && v !== key ? stripHTML(v) : "";
+    })
     .replace(/@Check\[([^\]]*)\](?:\{([^}]*)\})?/g, (_, body, label) => {
       if (label) return label;
       const parts = body.split("|"), opt = Object.fromEntries(parts.filter((p) => p.includes(":")).map((p) => { const i = p.indexOf(":"); return [p.slice(0, i), p.slice(i + 1)]; }));
@@ -574,10 +610,47 @@ export function inlineText(s, { loc = (k) => k, config = {} } = {}) {
       const dc = /^\d+$/.test(opt.dc ?? "") ? ` DC ${opt.dc}` : "";
       return (type ? skill(type) : "") + dc;
     })
-    .replace(/@(?:UUID|Compendium|Item|Actor|JournalEntry|Template|Localize)\[[^\]]*\](?:\{([^}]*)\})?/g, (_, label) => label ?? "")
+    .replace(/@(?:UUID|Compendium|Item|Actor|JournalEntry|Template)\[[^\]]*\](?:\{([^}]*)\})?/g, (_, label) => label ?? "")
     .replace(/@Damage\[((?:[^\[\]]|\[[^\]]*\])*)\](?:\{([^}]*)\})?/g, (_, f, label) => label ?? f.replace(/\[[^\]]*\]/g, ""))
     .replace(/\[\[\/(?:b?r|gmr|pr)\s+([^\]]*?)\]\](?:\{([^}]*)\})?/g, (_, f, label) => label ?? f.replace(/#.*$/, "").trim())
     .replace(/\s+([,.;:])/g, "$1").replace(/\s+/g, " ").trim();
+}
+
+/* ── the stat block's quiet half ──────────────────────────────────
+   What a creature does without a press: what changes the damage it takes,
+   what it perceives with, how it moves, what it speaks, and every ability
+   with no action to take (an aura, a Ferocity). Reactions and free actions
+   are presses already, among the creature's moves. The
+   labels are PF2e's own: an IWR's `label` already carries its value and
+   its exceptions, a sense's its acuity and range. */
+const capWord = (w) => String(w).charAt(0).toUpperCase() + String(w).slice(1);
+const labelOf = (x, ctx) => {
+  const own = typeof x?.label === "string" ? x.label.trim() : "";
+  if (own) return own;
+  const type = capWord(String(x?.type ?? x?.slug ?? "").replace(/-/g, " "));
+  const n = num(x?.value ?? x?.range);
+  return [type, n != null ? String(n) : ""].filter(Boolean).join(" ");
+};
+
+export function statOf(actor, ctx) {
+  const a = actor.system?.attributes ?? {};
+  const iwr = [["immune", a.immunities], ["weak", a.weaknesses], ["resist", a.resistances]]
+    .flatMap(([k, xs]) => list(xs).map((x) => ({ k, text: labelOf(x, ctx) })).filter((x) => x.text));
+  const speeds = Object.entries(actor.system?.movement?.speeds ?? {}).filter(([, v]) => num(v?.value) > 0)
+    .map(([type, v]) => `${typeof v.label === "string" && v.label ? v.label : capWord(type)} ${ctx.t("GLRAIL.speed", { n: v.value })}`);
+  const langs = ctx.config?.languages ?? {};
+  const passives = list(actor.itemTypes?.action).filter((i) => (i.system?.actionType?.value ?? "passive") === "passive")
+    .map((i) => ({ id: i.id, name: i.name, text: inlineText(stripHTML(i.system?.description?.value), ctx) }));
+  /* The skills the stat block lists: an NPC's proficient ones, and its Lores. */
+  const { skills: sk, lores } = skillsOf(actor);
+  const skills = [...Object.values(sk).filter((s) => s.kind === "skill" && (s.listed || s.rank > 0)), ...lores]
+    .sort((x, y) => String(x.name).localeCompare(String(y.name))).map((s) => ({ check: `skill:${s.slug}`, name: s.name, mod: s.mod }));
+  return {
+    iwr, passives, skills,
+    senses: list(actor.system?.perception?.senses).map((s) => labelOf(s, ctx)).filter(Boolean),
+    speeds,
+    languages: list(actor.system?.details?.languages?.value).map((l) => (langs[l] ? ctx.loc(langs[l]) : capWord(String(l).replace(/-/g, " ")))),
+  };
 }
 
 export function creatureOf(actor, ctx) {
@@ -590,7 +663,7 @@ export function creatureOf(actor, ctx) {
     ac: num(actor.armorClass?.value ?? actor.system?.attributes?.ac?.value, 10),
     hp: { value: num(hp.value, 0), max: num(hp.max, 0) }, ...checkMods(actor),
     recallDC: num(actor.identificationDCs?.standard?.dc),
-    strikes: npcStrikes, abilities, ...(adjust ? { adjust } : {}),
+    strikes: npcStrikes, abilities, stat: statOf(actor, ctx), ...(adjust ? { adjust } : {}),
   };
 }
 

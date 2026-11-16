@@ -1107,6 +1107,16 @@ for (const f of ["styles/stream.css", "styles/stream-cards.css", "styles/stream-
   }
 }
 
+
+/* The dice wait is core/dice-wait.mjs's alone: it yields a task before asking
+   Dice So Nice, which a private copy forgets, and then shows a result while the
+   dice are still in the air. */
+{
+  const src = read("scripts/features/stream/dice-wait.js").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+  const good = /import \{[^}]*\bdiceSettled\b[^}]*\} from "[./]*core\/dice-wait\.mjs"/.test(src) && !/waitFor3DAnimationByMessageID\(|diceSoNiceRollComplete/.test(src);
+  if (!good) fail("stream/dice-wait.js must wait through diceSettled from core/dice-wait.mjs, never call Dice So Nice's wait or hook itself");
+}
+
 /* ------------------------------------------------------------------ report -- */
 if (problems.length) {
   console.error(`stream-check: ${problems.length} problem${problems.length === 1 ? "" : "s"}\n`);

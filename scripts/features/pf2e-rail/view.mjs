@@ -15,8 +15,8 @@
  *             with the next MAP step underlined
  *   deck      one plate, four tabs, each drawn in the shape of what it holds:
  *             Spells (cards fanned up out of the rail, one rank at a time),
- *             Actions (rows in PF2e's action glyph), Skills (the skill-action
- *             finder's field and what it suggests right now), Items (tiles)
+ *             Actions (rows in PF2e's action glyph), Skills (every skill and
+ *             Lore as a one-press check, named whole), Items (tiles)
  *   util      rest, macros, the sheet
  *
  * Over the strikes and the deck, on the rail's top edge, rides the turn bar
@@ -27,13 +27,16 @@
  * close to one.
  *
  * The GM's rail swaps everything after the plinth for the creature panel
- * (or the hazard panel) and a hand of every non-PC token on the scene. On
+ * (or the hazard panel) and a hand of every non-PC token on the scene. Over
+ * the creature panel rides the stat bar: what changes the damage it takes
+ * and the abilities it has without a press. On
  * both rails the party is the stack of ringed seats above the plinth.
  *
- * The skill finder (`FINDER`) is the rail's hero: every skill action PF2e
- * defines, found by typing, grouped by what the character is trying to do,
- * each one carrying its best skill, the defence it targets and — where the
- * party knows the number — the odds, and rolled through PF2e's own action.
+ * The skill sheet (`FINDER`) rises over the rail: a row per skill, its
+ * head the plain check, beside it every action that skill rolls, each
+ * carrying the defence it targets and — where the party knows the number —
+ * the odds, an attack-trait action its three MAP steps. Nothing on it is
+ * folded; typing only narrows it.
  *
  * This file is pure: every builder takes a plain model and a `t(key, data)`
  * translator and returns markup. It reaches no `game`, no `canvas` and no
@@ -56,7 +59,7 @@ import { actionsLeft } from "./shape.mjs";
 export const HANDLES = Object.freeze([
   "data-act", "data-hero", "data-pip", "data-check", "data-strike", "data-variant", "data-dmg", "data-crit",
   "data-toggle", "data-stance", "data-action", "data-spell", "data-rank-step", "data-tab", "data-item",
-  "data-skill-action", "data-find", "data-explore", "data-drawer", "data-row",
+  "data-skill-action", "data-stat", "data-find", "data-explore", "data-drawer", "data-row",
   "data-seat", "data-foe", "data-pa", "data-reload",
 ]);
 
@@ -358,11 +361,13 @@ export const ACTIONS = ({ toggles = [], list = [] }, t) => `
     <div class="gph-arows">${list.length ? list.map((a) => ACTION_ROW(a, t)).join("") : `<span class="gph-none">${esc(t("GLRAIL.actions.none"))}</span>`}</div>
   </div>`;
 
-/* Skills, in the rail: the finder's field — type and the finder opens with
-   what you typed — and the actions worth reaching for right now, which the
-   host chooses from the mode, the target and the character's pins. Each is
-   a key with its skill's modifier and, where the party knows the defence,
-   its odds. */
+/* Skills, in the rail. A GM says "roll Athletics" far more often than
+   anybody goes looking for an action, so the tab leads with every skill
+   and Lore as a plain check, in the sheet's own order, where it never
+   moves: one press, no panel, no typing. Beside them are the actions worth
+   reaching for right now (the pins first), which the host chooses from the
+   mode, the target and the character's pins. An action with the attack
+   trait is a strike's row in small: its three MAP steps, equal and still. */
 const ODDS = (vs, t) => {
   if (!vs) return "";
   const dc = vs.dc == null ? t("GLRAIL.skill.unknown") : String(vs.dc);
@@ -373,15 +378,44 @@ const ODDS = (vs, t) => {
 
 const RANK_TAG = (rank, t) => (rank == null ? "" : `<i class="gph-tag" data-rank="${rank}" title="${esc(t(`GLRAIL.prof.${rank}`))}">${esc(t(`GLRAIL.prof.${rank}Short`))}</i>`);
 
-const KEY = (a, t) => `<button type="button" class="gph-key${a.locked ? " is-locked" : ""}" data-skill-action="${esc(a.id)}"${a.attack ? " data-attack" : ""}${/^[123]$/.test(String(a.cost)) ? ` data-cost="${a.cost}"` : ""}${a.locked ? ` aria-disabled="true" title="${esc(a.locked)}"` : ""}
-    aria-label="${esc([a.name, `${a.skill.name} ${sign(a.skill.mod)}`, a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}` : ""].filter(Boolean).join(", "))}">
-    ${actionIcon(a.slug)}<b>${esc(a.name)}</b><span class="gph-cost">${glyph(a.cost, t)}</span>${RANK_TAG(a.skill.rank, t)}<span class="gph-kmod">${sign(a.mapMod ?? a.skill.mod)}</span>${ODDS(a.vs, t)}</button>`;
+/* What a press of this action addresses: the action, and the skill of the
+   row it stands in where the sheet offers it under several. */
+const ACT = (a) => `data-skill-action="${esc(a.id)}"${a.stat ? ` data-stat="${esc(a.stat)}"` : ""}`;
+const COST = (a) => (/^[123]$/.test(String(a.cost)) ? ` data-cost="${a.cost}"` : "");
+
+/* The three MAP steps of an attack-trait action, as a strike's row has
+   them: none lit, none moving. PF2e is handed the step and applies its own
+   penalty for it (−5, then −10), which is what each press prints. */
+const STEPS = (a, t) => (a.variants ? `<span class="gph-mss" role="group" aria-label="${esc(t("GLRAIL.skill.steps", { name: a.name }))}">${a.variants.map((v, i) => {
+  const said = esc(t(`GLRAIL.skill.step${i}`, { name: a.name, mod: v }));
+  return `<button type="button" class="gph-ms" ${ACT(a)} data-variant="${i}" data-attack${COST(a)} title="${said}" aria-label="${said}">${esc(v)}</button>`;
+}).join("")}</span>` : "");
+
+const KEY = (a, t) => {
+  const said = esc([a.name, `${a.skill.name} ${sign(a.skill.mod)}`, a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}` : ""].filter(Boolean).join(", "));
+  const face = `${actionIcon(a.slug)}<b>${esc(a.name)}</b><span class="gph-cost">${glyph(a.cost, t)}</span>`;
+  if (a.variants) return `<span class="gph-key is-steps"><button type="button" class="gph-kb" ${ACT(a)} data-attack${COST(a)} title="${esc(t("GLRAIL.skill.atMap", { name: a.name }))}" aria-label="${said}">${face}</button>${STEPS(a, t)}${ODDS(a.vs, t)}</span>`;
+  return `<button type="button" class="gph-key${a.locked ? " is-locked" : ""}" ${ACT(a)}${COST(a)}${a.locked ? ` aria-disabled="true" title="${esc(a.locked)}"` : ""} aria-label="${said}">
+    ${face}<span class="gph-kmod">${sign(a.skill.mod)}</span>${ODDS(a.vs, t)}</button>`;
+};
+
+/* A skill is always named whole: a shorthand is one more thing to decode
+   while the GM waits. A Lore is named by what it is about, with the word
+   itself small on a second line, so "Warfare" reads at a glance and no
+   Lore is mistaken for a skill. */
+const skillName = (c, t, q = "") => {
+  if (!c.lore) return `<span class="gph-skn">${marked(c.name, q)}</span>`;
+  const subject = String(c.name).replace(/\s+Lore$/i, "") || c.name;
+  return `<span class="gph-skn is-lore"><span>${marked(subject, q)}</span><small>${esc(t("GLRAIL.skill.lore"))}</small></span>`;
+};
+const CHECK_KEY = (c, t) => `<button type="button" class="gph-ck" data-check="${esc(c.check)}" data-rank="${c.rank ?? 0}" title="${esc(`${t("GLRAIL.check.roll", { name: c.name })} · ${t(`GLRAIL.prof.${c.rank ?? 0}`)}`)}" aria-label="${esc(`${c.name} ${sign(c.mod)}`)}">
+      ${skillName(c, t)}<b>${sign(c.mod)}</b></button>`;
 
 export const SKILLTAB = (s, t) => `
   <div class="gph-skilltab">
-    <label class="gph-search is-mini">${ICON.search}<input type="search" data-find value="${esc(s.query ?? "")}" placeholder="${esc(t("GLRAIL.skill.placeholder"))}" aria-label="${esc(t("GLRAIL.skill.find"))}" autocomplete="off" spellcheck="false"><kbd>${esc(t("GLRAIL.skill.key"))}</kbd></label>
-    ${s.target ? `<span class="gph-tgt" title="${esc(s.target.name)}">${s.target.img ? `<img src="${esc(s.target.img)}" alt="">` : ""}<span>${esc(t("GLRAIL.skill.vs"))}</span><b>${esc(s.target.name)}</b></span>` : `<span class="gph-tgt is-none">${esc(t("GLRAIL.skill.noTarget"))}</span>`}
-    <div class="gph-keys">${(s.suggested ?? []).map((a) => KEY(a, t)).join("")}</div>
+    <div class="gph-cks" role="group" aria-label="${esc(t("GLRAIL.group.checks"))}">${(s.checks ?? []).map((c) => CHECK_KEY(c, t)).join("")}</div>
+    <div class="gph-keys" role="group" aria-label="${esc(t("GLRAIL.skill.title"))}">${(s.suggested ?? []).map((a) => KEY(a, t)).join("")}
+      <button type="button" class="gph-key is-all" data-act="finder" title="${esc(t("GLRAIL.skill.find"))}">${ICON.search}<b>${esc(t("GLRAIL.skill.all"))}</b><kbd>${esc(t("GLRAIL.skill.key"))}</kbd></button></div>
   </div>`;
 
 /* Items: what is reached for in a fight, held as a hand of the same compact
@@ -426,28 +460,30 @@ export const UTIL = (u, t) => `
   <button type="button" class="gph-dw${u?.open === k ? " on" : ""}" data-drawer="${k}" title="${esc(t(`GLRAIL.drawer.${k}`))}" aria-label="${esc(t(`GLRAIL.drawer.${k}`))}"${k === "sheet" ? "" : ` aria-expanded="${u?.open === k}"`}>${ICON[k]}</button>`).join("")}
 </nav>`;
 
-/* ── the skill finder ─────────────────────────────────────────────
-   pf2e-hud's skill menu is every skill with every action under it, all at
-   once. The finder keeps the skill as the way in — players know what they
-   are good at, and the skill is what the roll adds — but shows only what
-   this character can actually do, small enough to take in at a glance:
+/* ── the skill sheet ──────────────────────────────────────────────
+   The panel that rises over the rail is the character's skills as a
+   sheet, and nothing in it has to be opened, unfolded or found:
 
-   - one column per skill the character has an action in, best modifier
-     first; the column's head IS the plain skill check (press it to roll
-     Athletics), so the modifier is printed once, not on every row;
-   - every action a one-line chip: its picture, its name, its cost, and on
-     the right the chance against the target's defence where the party
-     knows it (?? where they do not), coloured only at the ends — likely
-     green, unlikely red;
-   - a trained-only action under an untrained skill is not drawn at all,
-     because it cannot be taken; untrained skills that still have actions
-     share one column, each chip naming its skill;
-   - skills with no actions here (and Lores) are a row of check presses
-     along the foot.
+   - one row per skill, Perception first, then the sixteen by name, then
+     the Lores. A row never moves and is never missing, so the eye learns
+     where Athletics is;
+   - the row's head IS the plain check (press it to roll Athletics): name,
+     proficiency, modifier;
+   - beside it, every action that skill can roll, each one line: picture,
+     name, cost, and the chance against the target's defence where the
+     party knows it (?? where they do not), coloured only at the ends;
+   - an action with the attack trait carries its three MAP steps as a
+     strike's row does. Its name rolls at the turn's own step;
+   - an action several skills can roll (Recall Knowledge, Escape) stands
+     in each of their rows, rolled with that row's skill;
+   - a trained-only action under an untrained skill is not drawn, because
+     it cannot be taken.
 
-   Typing narrows every column at once. An attack-trait action rolls at the
-   turn's MAP step (shown on its chip when it is not the first); 1–3 roll it
-   at a chosen step. A pin keeps an action in the rail's Skills tab. */
+   Typing narrows the rows: a skill's name keeps its whole row (and Enter
+   rolls the check), an action's name keeps that action. A pinned action
+   also stands in a row of its own above Perception, rolled with the
+   character's best skill for it, so what a player reaches for every turn
+   is the first thing on the sheet. */
 const oddsTone = (c) => {
   if (c == null) return "";
   const [lo, hi] = Array.isArray(c) ? c : [c, c];
@@ -456,7 +492,7 @@ const oddsTone = (c) => {
 const pctOf = (c) => (c == null ? "" : Array.isArray(c) ? `${Math.round(c[0] * 100)}–${Math.round(c[1] * 100)}%` : `${Math.round(c * 100)}%`);
 
 /* The typed words, marked where they start a word of the name. */
-const fold = (x) => String(x).toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const fold = (x) => String(x).toLocaleLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const marked = (name, q) => {
   const words = fold(q ?? "").split(/\s+/).filter(Boolean);
   if (!words.length) return esc(name);
@@ -466,23 +502,29 @@ const marked = (name, q) => {
   }).join("");
 };
 
-const CHIP = (a, t, sel, k, { withSkill = false, query = "" } = {}) => {
+const CHIP = (a, t, sel, k, { query = "" } = {}) => {
   const chance = a.vs?.chance ?? null;
   const known = a.vs && a.vs.dc != null;
-  const said = [a.name, a.cost != null ? t(costKey(a.cost), { cost: a.cost }) : "", `${a.skill.name} ${sign(a.mapMod ?? a.skill.mod)}`,
-    a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}${known ? "" : " ??"}` : "", chance != null ? pctOf(chance) : "", a.secret ? t("GLRAIL.skill.secret") : ""].filter(Boolean).join(", ");
-  return `<button type="button" class="gph-fa${sel ? " is-sel" : ""}${a.pinned ? " is-pinned" : ""}" role="option" aria-selected="${!!sel}" data-skill-action="${esc(a.id)}"${a.attack ? " data-attack" : ""}${/^[123]$/.test(String(a.cost)) ? ` data-cost="${a.cost}"` : ""} data-k="${k}" style="--k:${k}"
-      title="${esc([a.name, a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}${a.vs.dc != null ? ` (DC ${a.vs.dc})` : ""}` : a.note ?? "", a.secret ? t("GLRAIL.skill.secretTitle") : ""].filter(Boolean).join(" · "))}" aria-label="${esc(said)}">
-    ${actionIcon(a.slug)}<b>${marked(a.name, query)}</b>${a.cost != null ? `<span class="gph-cost">${costGlyph(a.cost)}</span>` : ""}${a.secret ? ICON.secret : ""}
-    ${withSkill ? `<i class="gph-cskill">${esc(a.skill.name.slice(0, 3))} ${sign(a.skill.mod)}</i>` : a.attack && a.mapMod !== a.skill.mod ? `<i class="gph-cmap">${sign(a.mapMod)}</i>` : ""}
-    ${a.pinned ? `<span class="gph-pinmk" title="${esc(t("GLRAIL.skill.pinned"))}">${ICON.pin}</span>` : ""}<em class="gph-codds"${oddsTone(chance) ? ` data-tone="${oddsTone(chance)}"` : ""}>${a.vs ? (chance != null ? pctOf(chance) : known ? esc(t("GLRAIL.skill.dcShort", { dc: a.vs.dc })) : esc(t("GLRAIL.skill.unknown"))) : ""}</em>
-  </button>`;
+  /* rolled with a statistic that is not this row's (Unarmed for Escape) */
+  const other = a.stat ? a.skill.slug !== a.stat : !!a.best;
+  const said = esc([a.name, a.cost != null ? t(costKey(a.cost), { cost: a.cost }) : "", `${a.skill.name} ${sign(a.mapMod ?? a.skill.mod)}`,
+    a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}${known ? "" : " ??"}` : "", chance != null ? pctOf(chance) : "", a.secret ? t("GLRAIL.skill.secret") : ""].filter(Boolean).join(", "));
+  const title = esc([a.variants ? t("GLRAIL.skill.atMap", { name: a.name }) : a.name, a.vs ? `${t("GLRAIL.skill.vs")} ${a.vs.label}${a.vs.dc != null ? ` (DC ${a.vs.dc})` : ""}` : a.note ?? "", a.secret ? t("GLRAIL.skill.secretTitle") : ""].filter(Boolean).join(" · "));
+  const face = `${actionIcon(a.slug)}<b>${marked(a.name, query)}</b>${a.cost != null ? `<span class="gph-cost">${costGlyph(a.cost)}</span>` : ""}${a.secret ? ICON.secret : ""}`;
+  const tail = `${other ? `<i class="gph-cskill">${esc(a.skill.name.slice(0, 3))} ${sign(a.skill.mod)}</i>` : ""}${a.pinned ? `<span class="gph-pinmk" title="${esc(t("GLRAIL.skill.pinned"))}">${ICON.pin}</span>` : ""}<em class="gph-codds"${oddsTone(chance) ? ` data-tone="${oddsTone(chance)}"` : ""}>${a.vs ? (chance != null ? pctOf(chance) : known ? esc(t("GLRAIL.skill.dcShort", { dc: a.vs.dc })) : esc(t("GLRAIL.skill.unknown"))) : ""}</em>`;
+  const cls = `gph-fa${sel ? " is-sel" : ""}${a.pinned ? " is-pinned" : ""}`;
+  if (a.variants) return `<span class="${cls} is-steps" role="option" aria-selected="${!!sel}" data-attack data-k="${k}" style="--k:${k}">
+    <button type="button" class="gph-fab" ${ACT(a)} data-attack${COST(a)} title="${title}" aria-label="${said}">${face}</button>${STEPS(a, t)}${tail}</span>`;
+  return `<button type="button" class="${cls}" role="option" aria-selected="${!!sel}" ${ACT(a)}${COST(a)} data-k="${k}" style="--k:${k}" title="${title}" aria-label="${said}">
+    ${face}${tail}</button>`;
 };
 
-/* The selected action, said whole in the foot: what it rolls, against what,
+/* What is selected, said whole in the foot: what it rolls, against what,
    and whether the party knows that number — so the keyboard has what the
    pointer gets from a tooltip, and "??" is never a riddle. */
-const SELINE = (a, f, t) => {
+const SELINE = (p, f, t) => {
+  if (p.row) return `<p class="gph-fsel" aria-live="polite"><b>${esc(p.row.name)}</b><span>${esc(t(`GLRAIL.prof.${p.row.rank ?? 0}`))} ${sign(p.row.mod)}</span><span class="gph-fdim">${esc(t("GLRAIL.skill.checkHint"))}</span></p>`;
+  const a = p.action;
   const mod = sign(a.mapMod ?? a.skill.mod);
   const vs = a.vs
     ? `${esc(t("GLRAIL.skill.vs"))} ${esc(a.vs.label)} ${a.vs.dc != null ? `<b>${a.vs.stat === "recall" || a.vs.stat === "dc" ? esc(a.vs.dc) : esc(t("GLRAIL.skill.dcShort", { dc: a.vs.dc }))}</b>` : `<i>${esc(t("GLRAIL.skill.dcUnknown"))}</i>`}`
@@ -495,24 +537,22 @@ const SELINE = (a, f, t) => {
 export const FINDER = (f, t) => {
   let k = 0;
   const sel = f.sel ?? 0;
-  /* A column shows its first six (pins first); the untrained column starts
-     folded, since a +1 action is rarely the one to take. Typing opens all. */
-  const CAP = 6;
   let picked = null;
-  const cols = f.columns.map((c, ci) => {
-    const cap = c.key === "untrained" ? 0 : CAP;
-    const open = f.query || f.expanded?.includes(c.key) || c.actions.length <= cap + 1;
-    const list = open ? c.actions : c.actions.slice(0, cap);
+  const rows = f.rows.map((r, ri) => {
+    /* found by one of its actions only: the check stays a press, and the
+       keys start on what was typed for */
+    const ki = r.aside || r.pinned ? null : k++;
+    if (ki != null && ki === sel) picked = { row: r };
+    const head = r.pinned ? `<span class="gph-fk is-pins">${ICON.pin}<span class="gph-skn">${esc(r.name)}</span></span>` : `<button type="button" class="gph-fk${ki != null && ki === sel ? " is-sel" : ""}" data-check="${esc(r.check)}" data-rank="${r.rank ?? 0}"${ki != null ? ` data-k="${ki}" role="option" aria-selected="${ki === sel}"` : ""} title="${esc(t("GLRAIL.check.roll", { name: r.name }))}" aria-label="${esc(`${r.name}, ${t(`GLRAIL.prof.${r.rank ?? 0}`)}, ${sign(r.mod)}`)}">
+          ${skillName(r, t, r.aside ? "" : f.query)}${RANK_TAG(r.rank ?? 0, t)}<em>${sign(r.mod)}</em></button>`;
+    const chips = r.actions.map((a) => { const i = k++; if (i === sel) picked = { action: a }; return CHIP(a, t, i === sel, i, { query: f.query }); }).join("");
     return `
-      <section class="gph-scol${c.key === "untrained" ? " is-untrained" : ""}" aria-label="${esc(c.name)}" style="--c:${ci}">
-        ${c.key === "untrained" ? `<h3 class="gph-shead is-plain">${esc(t("GLRAIL.skill.untrained"))}</h3>`
-          : `<button type="button" class="gph-shead"${c.rank != null ? ` data-rank="${c.rank}"` : ""} data-check="${c.check ?? `skill:${esc(c.key)}`}" title="${esc(t("GLRAIL.check.roll", { name: c.name }))}">
-          <b>${esc(c.name)}</b>${RANK_TAG(c.rank, t)}<em>${sign(c.mod)}</em></button>`}
-        <div class="gph-chips-v">${list.map((a) => { const i = k++; if (i === sel) picked = a; return CHIP(a, t, i === sel, i, { withSkill: c.key === "untrained", query: f.query }); }).join("")}${open ? "" : `<button type="button" class="gph-more" data-act="expand-col" data-col="${esc(c.key)}">${esc(t("GLRAIL.more", { n: c.actions.length - cap }))}</button>`}</div>
+      <section class="gph-skrow${r.pinned ? " is-pins" : (r.rank ?? 0) > 0 ? "" : " is-untrained"}" aria-label="${esc(r.name)}" style="--c:${ri}">
+        ${head}<div class="gph-sacts">${chips}</div>
       </section>`;
   }).join("");
   return `
-<section class="gph-finder" role="dialog" aria-label="${esc(t("GLRAIL.skill.title"))}" data-finder>
+<section class="gph-finder" role="dialog" aria-label="${esc(t("GLRAIL.skill.sheet"))}" data-finder>
   <header class="gph-fhead">
     <label class="gph-search">${ICON.search}<input type="search" data-find value="${esc(f.query ?? "")}" placeholder="${esc(t("GLRAIL.skill.placeholder"))}" aria-label="${esc(t("GLRAIL.skill.find"))}" autocomplete="off" spellcheck="false" aria-controls="gph-results"></label>
     ${f.target ? `<span class="gph-tgt is-big">${f.target.img ? `<img src="${esc(f.target.img)}" alt="">` : ""}<span>${esc(t("GLRAIL.skill.vs"))}</span><b>${esc(f.target.name)}</b>${f.target.known ? `<em>${esc(f.target.known)}</em>` : ""}</span>` : `<span class="gph-tgt is-big is-none">${esc(t("GLRAIL.skill.noTarget"))}</span>`}
@@ -520,9 +560,8 @@ export const FINDER = (f, t) => {
     <button type="button" class="gph-x" data-act="close" aria-label="${esc(t("GLRAIL.close"))}">${ICON.close}</button>
   </header>
   <div class="gph-results" id="gph-results" role="listbox" aria-label="${esc(t("GLRAIL.skill.results"))}">
-    ${f.columns.length ? `<div class="gph-scols">${cols}</div>` : `<p class="gph-fnone">${esc(t("GLRAIL.skill.none", { q: f.query ?? "" }))}</p>`}
+    ${f.rows.length ? `<div class="gph-skrows">${rows}</div>` : `<p class="gph-fnone">${esc(t("GLRAIL.skill.none", { q: f.query ?? "" }))}</p>`}
   </div>
-  ${f.checks?.length ? `<footer class="gph-fchecks"><span>${esc(t("GLRAIL.group.checks"))}</span>${f.checks.map((s) => `<button type="button" class="gph-cchk" data-check="skill:${esc(s.slug)}" title="${esc(t("GLRAIL.check.roll", { name: s.name }))}"><b>${esc(s.name)}</b>${s.rank > 0 ? RANK_TAG(s.rank, t) : ""}<em>${sign(s.mod)}</em></button>`).join("")}</footer>` : ""}
   <footer class="gph-ffoot">${picked ? SELINE(picked, f, t) : ""}<span class="gph-fhint"><span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> ${esc(t("GLRAIL.skill.hintMove"))}</span><span><kbd>↵</kbd> ${esc(t("GLRAIL.skill.hintRoll"))}</span><span><kbd>1</kbd>–<kbd>3</kbd> ${esc(t("GLRAIL.skill.hintMap"))}</span><span><kbd>P</kbd> ${esc(t("GLRAIL.skill.hintPin"))}</span><span><kbd>Esc</kbd> ${esc(t("GLRAIL.close"))}</span></span></footer>
 </section>`;
 };
@@ -619,13 +658,103 @@ export const SEAT = (s, t) => {
 </div>`;
 };
 
+/* ── the party's checks, and a call ───────────────────────────────
+   The GM's grid (calls.mjs): a row per check, a column per character, the
+   best in a row marked. Two presses, and the row says which is which:
+
+   - a NUMBER rolls that character's check for the GM alone, blind to the
+     table (a secret Perception, a Stealth nobody may know the result of);
+   - a NAME calls for the check: every player gets one press on their rail.
+     The DC field is the GM's; it leaves the screen only when "show" is on.
+
+   While a call stands, its row is lit and each cell says who has rolled. */
+export const PARTYCHECKS = (p, t, { dc = "", showDc = false, call = null } = {}) => {
+  if (!p?.members?.length) return `<p class="gph-dnone">${esc(t("GLRAIL.call.noParty"))}</p>`;
+  const got = new Set(call?.answered ?? []);
+  return `
+<div class="gph-pc" data-party>
+  <div class="gph-pc-bar">
+    <label class="gph-pc-dc"><span>${esc(t("GLRAIL.call.dc"))}</span><input type="number" data-call-dc inputmode="numeric" min="0" max="60" step="1" value="${esc(dc ?? "")}" placeholder="${esc(t("GLRAIL.call.dcNone"))}" aria-label="${esc(t("GLRAIL.call.dcSaid"))}"></label>
+    <label class="gph-pc-show"><input type="checkbox" data-call-show${showDc ? " checked" : ""}><span>${esc(t("GLRAIL.call.show"))}</span></label>
+    ${call ? `<span class="gph-pc-live" aria-live="polite">${ICON.call}<b>${esc(t("GLRAIL.call.live", { name: call.name }))}</b><em>${esc(t("GLRAIL.call.count", { n: got.size, of: p.members.length }))}</em></span><button type="button" class="gph-pc-end" data-act="call-end">${esc(t("GLRAIL.call.end"))}</button>`
+      : `<span class="gph-pc-hint">${esc(t("GLRAIL.call.hint"))}</span>`}
+  </div>
+  <table class="gph-pct">
+    <thead><tr><th scope="col"><span class="gph-sr">${esc(t("GLRAIL.group.checks"))}</span></th>${p.members.map((m) => `<th scope="col" title="${esc(m.name)}">${m.img ? `<img src="${esc(m.img)}" alt="">` : ""}<span>${esc(m.name)}</span></th>`).join("")}</tr></thead>
+    <tbody>${p.rows.map((r, i) => `
+      <tr data-group="${r.group}"${call?.check === r.check ? ' class="is-called"' : ""}${i && p.rows[i - 1].group !== r.group ? " data-first" : ""}>
+        <th scope="row"><button type="button" class="gph-pc-call" data-call="${esc(r.check)}" title="${esc(t("GLRAIL.call.callFor", { name: r.name }))}">${ICON.call}<span>${esc(r.name)}</span></button></th>
+        ${r.cells.map((c, ci) => `<td>${c.mod == null ? "" : `<button type="button" class="gph-pc-cell${c.best ? " is-best" : ""}${call?.check === r.check && got.has(c.id) ? " is-in" : ""}" data-pcheck="${esc(r.check)}" data-actor="${esc(c.id)}" data-rank="${c.rank}" title="${esc(t("GLRAIL.call.secretFor", { name: r.name, who: p.members[ci].name }))}" aria-label="${esc(`${p.members[ci].name}, ${r.name} ${sign(c.mod)}`)}">${sign(c.mod)}</button>`}</td>`).join("")}
+      </tr>`).join("")}
+    </tbody>
+  </table>
+</div>`;
+};
+
+/* A call on a player's rail: one press, the check named whole, the
+   character's own modifier, the DC only where the GM showed it. */
+export const CALLBAR = (c, t) => `
+<div class="gph-call" role="alert" data-call-id="${esc(c.id)}">
+  <span class="gph-call-k">${ICON.call}${esc(t("GLRAIL.call.asks"))}</span>
+  <button type="button" class="gph-call-roll" data-check="${esc(c.check)}" data-answer="${esc(c.id)}" title="${esc(t("GLRAIL.check.roll", { name: c.name }))}"><b>${esc(c.name)}</b><em>${sign(c.mod)}</em>${c.dc != null ? `<i>${esc(t("GLRAIL.skill.dcShort", { dc: c.dc }))}</i>` : ""}</button>
+  <button type="button" class="gph-x" data-act="call-dismiss" aria-label="${esc(t("GLRAIL.call.dismiss"))}" title="${esc(t("GLRAIL.call.dismiss"))}">${ICON.close}</button>
+</div>`;
+
 /* ── the GM's creature panel ──────────────────────────────────────
    AC leads, as on the player's vitals. Then the Hit Points the GM marks,
    the three saves and Perception as presses, and the line read before
    deciding what the party knows: level, the Recall Knowledge DC, and the
-   creature's own skill actions through the same finder the players use.
+   creature's own skills through the same sheet the players use.
    The moves are the strikes as rows of MAP presses, then the abilities as
-   chips in PF2e's glyph; nothing is lost silently under the panel's edge. */
+   chips in PF2e's glyph; nothing is lost silently under the panel's edge.
+
+   What a creature does without being asked is the half a GM forgets: its
+   immunities, weaknesses and resistances, and the abilities with no action
+   to press (an aura, a Ferocity). They ride the
+   panel's top edge, always drawn, in the order they come up in a fight:
+   what changes the damage first, then the passive abilities (a press reads
+   one), then the senses. What does not fit, and everything else the stat
+   block says (speeds, languages, each ability's text), is one press away
+   in the stat block drawer, which stays open from creature to creature. */
+const IWR_ORDER = ["immune", "weak", "resist"];
+const PASSIVE = (a, t) => `<button type="button" class="gph-pas" data-action="${esc(a.id)}" title="${esc(a.text ? `${a.name} · ${a.text}` : a.name)}">
+      <i class="gph-pasg" aria-hidden="true"></i><b>${esc(a.name)}</b></button>`;
+
+export const STATBAR = (n, t) => {
+  const s = n.stat;
+  if (!s) return "";
+  const iwr = IWR_ORDER.map((k) => ({ k, list: (s.iwr ?? []).filter((x) => x.k === k) })).filter((g) => g.list.length);
+  const count = (s.iwr?.length ?? 0) + (s.passives?.length ?? 0) + (s.senses?.length ?? 0);
+  return `
+<div class="gph-statbar" data-statbar role="group" aria-label="${esc(t("GLRAIL.stat.label", { name: n.name }))}">
+  <div class="gph-sb-run">${count ? "" : `<span class="gph-sb-none">${esc(t("GLRAIL.stat.none"))}</span>`}
+    ${iwr.map((g) => `<span class="gph-sb-g" data-iwr="${g.k}"><i>${esc(t(`GLRAIL.stat.${g.k}`))}</i><b>${esc(g.list.map((x) => x.text).join(", "))}</b></span>`).join("")}
+    ${(s.passives ?? []).map((a) => PASSIVE(a, t)).join("")}
+    ${s.senses?.length ? `<span class="gph-sb-g" data-iwr="senses"><i>${esc(t("GLRAIL.stat.senses"))}</i><b>${esc(s.senses.join(", "))}</b></span>` : ""}
+  </div>
+  <button type="button" class="gph-sb-all" data-drawer="statblock" title="${esc(t("GLRAIL.drawer.statblock"))}" aria-label="${esc(t("GLRAIL.drawer.statblock"))}">${ICON.sheet}<span>${esc(t("GLRAIL.stat.all"))}</span></button>
+</div>`;
+};
+
+/* The drawer: the same facts whole, one to a line, and every ability with
+   no action to press beside what it says. */
+export const STATBLOCK = (n, t) => {
+  const s = n.stat ?? {};
+  const line = (k, v, tone = "") => (v ? `<div class="gph-sl"${tone ? ` data-iwr="${tone}"` : ""}><dt>${esc(t(`GLRAIL.stat.${k}`))}</dt><dd>${esc(v)}</dd></div>` : "");
+  const of = (k) => (s.iwr ?? []).filter((x) => x.k === k).map((x) => x.text).join(", ");
+  const skills = (s.skills ?? []).length ? `<div class="gph-sl"><dt>${esc(t("GLRAIL.stat.skills"))}</dt><dd class="gph-sks">${s.skills.map((k) => `<button type="button" class="gph-sk" data-check="${esc(k.check)}" title="${esc(t("GLRAIL.check.roll", { name: k.name }))}"><span>${esc(k.name)}</span><b>${sign(k.mod)}</b></button>`).join("")}</dd></div>` : "";
+  const lines = [skills, line("immune", of("immune"), "immune"), line("weak", of("weak"), "weak"), line("resist", of("resist"), "resist"),
+    line("senses", (s.senses ?? []).join(", ")), line("speeds", (s.speeds ?? []).join(", ")), line("languages", (s.languages ?? []).join(", "))].join("");
+  return `
+<div class="gph-statblock">
+  ${lines ? `<dl class="gph-sls">${lines}</dl>` : ""}
+  ${s.passives?.length ? `<ul class="gph-spas">${s.passives.map((a) => `
+    <li><button type="button" class="gph-spa" data-action="${esc(a.id)}"><span class="gph-spah"><i class="gph-pasg" aria-hidden="true"></i><b>${esc(a.name)}</b></span>${a.text ? `<span class="gph-spat">${esc(a.text)}</span>` : ""}</button></li>`).join("")}
+  </ul>` : ""}
+  ${lines || s.passives?.length ? "" : `<p class="gph-dnone">${esc(t("GLRAIL.stat.none"))}</p>`}
+</div>`;
+};
+
 const NPC_STRIKE = (s, t) => `
     <div class="gph-nstk">
       <button type="button" class="gph-stn" data-strike="${esc(s.id)}" data-act="peek-strike" title="${esc(s.name)}"><b>${esc(s.short ?? s.name)}</b></button>
@@ -740,10 +869,10 @@ export const RAIL = (o, t) => {
     : VITALS(o.vitals, t) + STRIKES(o.strikes ?? { list: [] }, t) + DECK(o.deck, t) + (o.slim ? "" : UTIL(o.util, t));
   return `
 <div class="gph" data-role="${o.role}" data-mode="${o.mode ?? "exploration"}" data-map="${o.turnbar?.map ?? 0}"${o.slim ? " data-slim" : ""}${o.folded ? " data-folded" : ""}${o.readonly ? " data-readonly" : ""}${o.role !== "gm" && (o.plinth?.dead || o.plinth?.dying) ? ` data-down="${o.plinth.dead ? "dead" : "dying"}"` : ""}${o.overlay ? " data-overlay" : ""}>
-  ${o.stack?.length ? `<div class="gph-stack" role="group" aria-label="${esc(t("GLRAIL.party"))}">${o.stack.map((s) => SEAT(s, t)).join("")}</div>` : ""}
+  ${o.stack?.length ? `<div class="gph-stack" role="group" aria-label="${esc(t("GLRAIL.party"))}">${o.stack.map((s) => SEAT(s, t)).join("")}${o.role === "gm" ? `<button type="button" class="gph-pcb" data-drawer="party" title="${esc(t("GLRAIL.call.openTitle"))}">${ICON.party}<span>${esc(t("GLRAIL.call.open"))}</span></button>` : ""}</div>` : ""}
   <div class="gph-rail">
     ${PLINTH({ ...o.plinth, folded: o.folded }, t, { readonly: o.readonly })}
-    <div class="gph-body">${o.turnbar && o.role !== "gm" ? TURNBAR(o.turnbar, t) : ""}${body}</div>
+    <div class="gph-body">${o.turnbar && o.role !== "gm" ? TURNBAR(o.turnbar, t) : ""}${o.call && o.role !== "gm" ? CALLBAR(o.call, t) : ""}${o.role === "gm" && o.creature ? STATBAR(o.creature, t) : ""}${body}</div>
   </div>
   ${o.overlay ?? ""}
   ${o.peek ?? ""}

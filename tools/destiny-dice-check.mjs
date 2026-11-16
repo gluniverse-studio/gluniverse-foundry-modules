@@ -420,6 +420,15 @@ const dist = (a, b) => Math.hypot(...oklab(a).map((v, i) => v - oklab(b)[i]));
   for (const c of emitted) if (!HOOKS.has(c)) ok(new RegExp(`\\.${c}\\b`).test(body), `css: .${c} is emitted and never styled`);
 }
 
+/* The dice wait is core/dice-wait.mjs's alone: it yields a task before asking
+   Dice So Nice, which a private copy forgets, and then shows a result while the
+   dice are still in the air. */
+{
+  const src = read("scripts/features/destiny-dice/apply.mjs").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+  const good = /import \{[^}]*\bdiceSettled\b[^}]*\} from "[./]*core\/dice-wait\.mjs"/.test(src) && !/waitFor3DAnimationByMessageID\(|diceSoNiceRollComplete/.test(src);
+  ok(good && /diceSettled\(message, \{ timeout: TIMING\.diceSettle \}\)/.test(src), "apply.mjs must wait for the check's dice through diceSettled (core/dice-wait.mjs) with TIMING.diceSettle, never its own copy");
+}
+
 if (problems.length) {
   console.log(`destiny-dice-check: ${problems.length} problem(s) in ${checks} checks`);
   for (const p of problems) console.log("  ✗ " + p);

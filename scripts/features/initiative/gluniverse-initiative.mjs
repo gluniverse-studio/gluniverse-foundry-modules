@@ -48,6 +48,8 @@ import {
 import { normalizeInitiativeNumber, getDisposition, formatRound, formatInitiative, localize, formatLocalized, modulo, clamp, wait, escapeHTML, escapeAttr, escapeCSSIdentifier } from "./util.mjs";
 import { FX_SUPERSAMPLE, FX_GLSL_NOISE, FX_FRAG_BREAK, FX_FRAG_DYING, FX_FRAG_DELAY, FX_FRAG_SCRAMBLE, FX_FRAG_TYRANT, FX_FRAG_TURN, FX_FRAG_TURN_BAKE, FX_FRAG_TURN_PLAY, FX_FRAG_DOWNSAMPLE, rgbFloat, FX_VERT_MESH, makeFxMesh, setFxMeshQuad, destroyFxMesh } from "./gl.mjs";
 import { TokenOverlayManager, getMarkerSheets, prewarmStatusShaders } from "./token-overlay.mjs";
+import { DiceHold, isInitiativeRollMessage, combatantsForMessage, COMBAT_INTRO_FLAG } from "./dice-hold.mjs";
+import { diceSettled, DICE_WAIT_MS } from "../../core/dice-wait.mjs";
 /**
  * Boss Creatures reads, from the PF2e variant rules feature.
  *
@@ -124,10 +126,14 @@ export function onInit() {
   Hooks.on("createCombat", () => overlay?.renderSoon());
   Hooks.on("preDeleteCombat", combat => overlay?.removeAllPF2eGuardBreakEffects(combat));
   Hooks.on("deleteCombat", () => {
+    overlay?.diceHold.clear();
     overlay?.renderSoon();
     refreshNativeTurnMarkerSuppression();
   });
   Hooks.on("updateCombat", (combat, changed) => overlay?.onCombatUpdate(combat, changed));
+  // An initiative roll's message arrives before its tracker write (PF2e), so the
+  // rail keeps the roller as it was until the dice land (dice-hold.mjs).
+  Hooks.on("createChatMessage", message => overlay?.onInitiativeMessage(message));
   Hooks.on("createCombatant", () => overlay?.renderSoon());
   Hooks.on("preDeleteCombatant", combatant => overlay?.removePF2eGuardBreakEffect(combatant));
   Hooks.on("deleteCombatant", () => overlay?.renderSoon());
@@ -1286,6 +1292,7 @@ export class GLUniverseInitiativeOverlay {
     this.lastActiveKey = null;
     this.lastActiveInitiative = null;
     this.pendingDelayReturnId = null;
+    this.diceHold = new DiceHold();
     this.lastMarkup = "";
     this.lastRootClassName = "";
     this.lastPositionStyle = null;
@@ -1369,6 +1376,49 @@ export class GLUniverseInitiativeOverlay {
 
   onActorItemChange(actor) {
     if (this.hasCombatActor(actor)) this.renderSoon();
+  }
+
+  // An ordinary initiative roll (not Combat Intro's, which holds its own
+  // results): draw the roller as it was, number and slot, until this client's
+  // dice have landed, then redraw once. Released on the settle or on a hard cap,
+  // whichever comes first, so a result is never hidden for good.
+  onInitiativeMessage(message) {
+    try {
+      const combat = this.combat;
+      if (!combat?.combatants?.size || !isInitiativeRollMessage(message, MODULE_ID)) return;
+      if (combat.getFlag?.(MODULE_ID, COMBAT_INTRO_FLAG)) return;
+      const order = Array.from(combat.turns ?? []).map(turn => turn?.id);
+      const held = this.diceHold.hold(message, combatantsForMessage(combat.combatants, message), order);
+      if (!held.length) return;
+      let done = false;
+      const release = () => {
+        if (done) return;
+        done = true;
+        window.clearTimeout(cap);
+        if (this.diceHold.release(message.id)) this.renderSoon();
+      };
+      const cap = window.setTimeout(release, DICE_WAIT_MS + 1000);
+      diceSettled(message).then(release, release);
+    } catch {
+      this.diceHold.clear();
+    }
+  }
+
+  // The turn order the rail draws, and the index of the active turn in it.
+  // The truth, except for combatants whose initiative dice are still rolling.
+  displayTurns(combat) {
+    const sourceTurns = Array.isArray(combat.turns) && combat.turns.length
+      ? combat.turns
+      : combat.combatants?.contents ?? Array.from(combat.combatants ?? []);
+    const truth = Array.from(sourceTurns)
+      .map(entry => Array.isArray(entry) ? entry[1] : entry)
+      .filter(Boolean);
+    const currentTurn = Number.isInteger(combat.turn) ? combat.turn : 0;
+    if (!this.diceHold.size) return { turns: truth, currentTurn };
+    const turns = this.diceHold.order(truth);
+    const activeId = combat.combatant?.id ?? truth[currentTurn]?.id ?? null;
+    const index = activeId ? turns.findIndex(turn => turn.id === activeId) : -1;
+    return { turns, currentTurn: index >= 0 ? index : currentTurn };
   }
 
   renderSoon() {
@@ -1497,16 +1547,10 @@ export class GLUniverseInitiativeOverlay {
     const result = { active: null, next: null };
     if (!combat?.started) return result;
 
-    const sourceTurns = Array.isArray(combat.turns) && combat.turns.length
-      ? combat.turns
-      : combat.combatants?.contents ?? Array.from(combat.combatants ?? []);
-    const turns = Array.from(sourceTurns)
-      .map(entry => Array.isArray(entry) ? entry[1] : entry)
-      .filter(Boolean);
+    const { turns, currentTurn } = this.displayTurns(combat);
     if (!turns.length) return result;
 
     const showDefeated = Boolean(game.settings.get(MODULE_ID, SETTINGS.showDefeated));
-    const currentTurn = Number.isInteger(combat.turn) ? combat.turn : 0;
     const activeId = combat.combatant?.id ?? turns[currentTurn]?.id ?? null;
     const currentRound = Number(combat.round) || 1;
 
@@ -1885,12 +1929,7 @@ export class GLUniverseInitiativeOverlay {
   }
 
   buildViewModel(combat, settings = this.getRenderSettings()) {
-    const sourceTurns = Array.isArray(combat.turns) && combat.turns.length
-      ? combat.turns
-      : combat.combatants?.contents ?? Array.from(combat.combatants ?? []);
-    const turns = Array.from(sourceTurns)
-      .map(entry => Array.isArray(entry) ? entry[1] : entry)
-      .filter(Boolean);
+    const { turns, currentTurn } = this.displayTurns(combat);
     const states = turns.map(combatant => {
       const skipped = Boolean(combatant.defeated && !settings.showDefeated);
       return {
@@ -1904,7 +1943,6 @@ export class GLUniverseInitiativeOverlay {
 
     if (!turns.length) return { normal, delayed, activeId: null, activeKey: null };
 
-    const currentTurn = Number.isInteger(combat.turn) ? combat.turn : 0;
     // Before combat starts the overlay is a GM-only staging roster, so nothing is
     // "active" yet — leaving activeId null keeps every card in its resting state
     // (no expanded turn card, no floating turn controls).
@@ -2025,7 +2063,8 @@ export class GLUniverseInitiativeOverlay {
       boss: mystery || adhoc ? null : bossBadge(combatant.actor),
       bossTurn: mystery || adhoc ? null : turnMarker(combatant),
       name: mystery ? localize("GLUNI.Unknown") : adhoc?.name ?? combatant.name,
-      initiative: combatant.initiative,
+      // Held while this combatant's initiative dice are still rolling.
+      initiative: this.diceHold.initiativeOf(combatant),
       portrait,
       portraitScaleCap: mystery || adhoc ? 1 : getPortraitScaleCap(portrait),
       portraitFrame: mystery || adhoc ? null : getPortraitFrame(combatant.actor, portrait),

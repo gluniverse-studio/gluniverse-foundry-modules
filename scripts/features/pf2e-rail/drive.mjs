@@ -275,7 +275,7 @@ export function uncastCard(card) {
  *  it was: a ring travels the gap on the tap beat while the chip's own
  *  outline waits. `from` is the old chip's rect (getBoundingClientRect). */
 export function slideSel(finder, from, zoom = 1) {
-  const to = finder?.querySelector(".gph-fa.is-sel");
+  const to = finder?.querySelector("[data-k].is-sel");
   if (!to || !from) return;
   const fr = finder.getBoundingClientRect(), tr = to.getBoundingClientRect();
   if (Math.abs(tr.top - from.top) < 1 && Math.abs(tr.left - from.left) < 1) return;

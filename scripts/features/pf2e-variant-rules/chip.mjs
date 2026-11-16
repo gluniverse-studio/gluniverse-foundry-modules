@@ -20,6 +20,7 @@
  */
 
 import { SUITE_ID } from "../../core/const.mjs";
+import { diceSettled } from "../../core/dice-wait.mjs";
 import { SETTINGS, FLAGS } from "./constants.mjs";
 import { resolveChip } from "./rules.mjs";
 import { chipOn, get } from "./settings.mjs";
@@ -277,6 +278,13 @@ async function onCreate(message) {
 
   const offer = offerFor(message);
   if (!offer || offer.negated || offer.amount <= 0) return;
+
+  /* The miss is on the table only once its dice have stopped: taking the Hit
+     Points off while they tumble tells everyone watching the bar how the
+     attack went. Asked again afterwards, in case the GM pressed the card's
+     own button during the wait. */
+  await diceSettled(message);
+  if (settled(message)) return;
 
   const defender = offer.defenderUuid ? fromUuidSync(offer.defenderUuid) : null;
   await applyFlatDamage(defender, offer.amount);

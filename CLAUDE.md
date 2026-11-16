@@ -34,6 +34,7 @@ scripts/
     gl-surfaces.mjs         Pause/release lifecycle for suite WebGL contexts
     face-frame.mjs          Shared head locator for portrait framing (docs/FACE_FRAME.md)
     face-frame-math.mjs     Its pure crop/placement geometry
+    dice-wait.mjs           When a message's Dice So Nice dice have landed
     quick-palette.mjs       Ctrl+K GM search; features add results with
                             registerQuickProvider() from their onInit
   features/
@@ -1921,6 +1922,14 @@ consumables, so an item tile needs the `consumable` trait; a hazard's Disable
 text is inline syntax (`inlineText`). And a background tab starves
 `requestAnimationFrame`, so the refresh carries a timer fallback.
 
+**A call is the GM's sentence, never data** (`calls.mjs`, pure). The GM's Party
+checks grid rolls a character's check in secret (`messageMode: "gm"`, no
+event) or calls for one: a message on the suite socket to the connected
+players, drawn as one press on each rail. It is honoured only when the
+server-attested sender is a GM, `readCall` is total, a hidden DC never leaves
+the GM's client, and nothing is stored. Every skill must stay one press on a
+900p screen: a narrow deck's checks rise as a block, never scroll or abbreviate.
+
 **The lang file dies whole.** Foundry expands each language file with
 `expandObject`, and a key that is also the head of another (`GLRAIL.deck` beside
 `GLRAIL.deck.label`) throws and drops *every* key in it; the check refuses
@@ -1967,6 +1976,16 @@ feature calls `use()` before each draw so a context released while idle is
 rebuilt first. A lost context stays lost on its canvas, so a rebuild needs a new
 canvas. Every backdrop blur is written against `--gl-blur` / `--gl-glass-k`
 (DESIGN_SYSTEM.md rule 9), never bare pixels. The check requires both.
+
+**When a feature shows what a roll came to** (a total, a degree, damage taken off
+a bar, a chance that narrows), it waits for `diceSettled(message)` in
+`core/dice-wait.mjs` first. Foundry announces a message seconds before Dice So
+Nice's dice stop, so anything drawn from `createChatMessage` at once gives the
+roll away. Never call `waitFor3DAnimationByMessageID` directly: asked from a
+hook that runs before Dice So Nice's own it answers "nothing is rolling", and its
+promise can fail to settle, which is why the helper yields a task first and
+races a timeout. `pf2e-rail-check` drives the helper and pins its four callers
+(the PF2e HUD's echo, chip damage, the Odds ledger, Critical).
 
 **When touching CSS**, additionally confirm you have not reintroduced any of the
 drift this design system exists to prevent — a raw hex that duplicates a token,
