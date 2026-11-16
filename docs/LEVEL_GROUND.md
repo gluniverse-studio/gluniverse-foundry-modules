@@ -61,8 +61,9 @@ effect's level cannot be read.
 
 **Treat Wounds and Administer First Aid** convert their printed DC when the
 check is rolled (`convertActionDCs`); stopping bleeding is a fixed DC 14,
-whatever the bleed's own DC, and stabilizing Converts PF2e's 5 + recovery DC. Treat Wounds is left to Breath and Blood
-while that feature is on.
+whatever the bleed's own DC, and stabilizing Converts PF2e's 5 + recovery DC.
+Breath and Blood's own Treat Wounds already rolls on Level Ground's rank DCs and
+is marked `breath-and-blood:medicine`, so it is left alone.
 
 **Roles** (token HUD button, actor directory context menu). Mook: a quarter of
 its Hit Points, rounded up. Solo: twice its Hit Points, with Tempo and Unbowed.

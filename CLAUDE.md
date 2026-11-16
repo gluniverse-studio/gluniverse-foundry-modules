@@ -2016,7 +2016,11 @@ level-as-proficiency rule element is rewritten to +2, not 0: PF2e stacks the
 PWoL untrained −2 (a proficiency penalty) beside a same-type bonus, so a 0
 leaves the rule's effect unchanged. A role's Hit Points are written in two
 updates (max, then value), or `_preUpdate` clamps the value against the old
-maximum.
+maximum. Both are taken from the total before Breath and Blood halves a two-pool
+NPC (`maxHPOf`), and the value is written with `allowHPOverage`, since pf2e's
+clamp reads the halved maximum. Massive damage is matched to its HP update by
+uuid: a chat card applies damage through a contextual clone, and
+`preUpdateActor` sees the live document.
 
 **Task ranks ride roll options.** A converted check carries
 `level-ground:task-rank:N` (and `level-ground:dc-level:L`) in its inline

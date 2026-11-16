@@ -161,7 +161,8 @@ export async function runMedicine({ kind = "treat", healer, rank, assurance = fa
     } else {
       const roll = await healer.skills?.medicine?.roll({
         dc: { value: dc, visible: true },
-        extraRollOptions: [`action:${slug}`],
+        // The marker tells Level Ground this DC is already on its ladder.
+        extraRollOptions: [`action:${slug}`, "breath-and-blood:medicine"],
         action: slug,
         traits: kind === "battle" ? ["healing", "manipulate"] : ["exploration", "healing", "manipulate"],
         label: t(`GLBAB.treat.kind.${kind}`),

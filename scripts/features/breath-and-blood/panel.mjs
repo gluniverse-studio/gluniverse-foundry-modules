@@ -180,18 +180,18 @@ async function change(actor, field, el) {
   return null;
 }
 
-/** Set a role; an NPC or familiar that gains two pools starts full, its Hit Points capped to the new maximum. */
+/**
+ * Set a role; an NPC or familiar that gains two pools starts with full Stamina
+ * and Resolve. Its stored Hit Points are left alone: preparation caps them to
+ * the new pool, and a later return to one pool finds them as they were.
+ */
 export async function setRole(actor, role) {
   if (!R.ROLES.includes(role)) return;
   await actor.update({ [flagPath(FLAG.role)]: role }, { [OPTION]: "role" });
   if (actor.type === "character") return;
   const prep = PREP.get(actor);
   if (!prep?.twoPool) return;
-  const hp = Math.min(Number(actor._source?.system?.attributes?.hp?.value ?? 0), prep.maxHP);
-  await actor.update(
-    { "system.attributes.hp.value": hp, [flagPath(FLAG.sp)]: prep.maxSP, [flagPath(FLAG.rp)]: prep.maxRP },
-    { [OPTION]: "role", allowHPOverage: false },
-  );
+  await actor.update({ [flagPath(FLAG.sp)]: prep.maxSP, [flagPath(FLAG.rp)]: prep.maxRP }, { [OPTION]: "role" });
 }
 
 export function installPanel() {

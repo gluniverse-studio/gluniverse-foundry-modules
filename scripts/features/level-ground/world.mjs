@@ -10,6 +10,7 @@
 
 import { Suite } from "../../core/registry.mjs";
 import { isExtraTurn } from "../pf2e-variant-rules/boss/initiative.mjs";
+import { PREP } from "../breath-and-blood/actor.mjs";
 import { FLAGS, SUITE_ID, readFlag } from "./constants.mjs";
 
 /* ── One actor ────────────────────────────────────────────────────────── */
@@ -57,13 +58,18 @@ export function isPartyPC(actor) {
 const partOfAPC = (actor) =>
   actor?.type === "familiar" || hasTrait(actor, "minion") || hasTrait(actor, "eidolon") || hasTrait(actor, "summoned");
 
-/** Maximum Hit Points for the deadly test; with Breath and Blood, both pools. */
+/**
+ * Maximum Hit Points with Breath and Blood's Stamina pool added back: the
+ * deadly test reads both pools, and a role's Hit Points are set from the total
+ * before Breath and Blood splits it. A character's Stamina is pf2e's
+ * `hp.sp`; an NPC's lives only in Breath and Blood's prepared pools (`PREP`).
+ */
 export function maxHPOf(actor) {
   const hp = actor?.system?.attributes?.hp;
   const max = Number(hp?.max) || 0;
   let sp = 0;
   try {
-    if (Suite.enabled("breath-and-blood")) sp = Number(hp?.sp?.max) || 0;
+    if (Suite.enabled("breath-and-blood")) sp = Number(PREP.get(actor)?.maxSP ?? hp?.sp?.max) || 0;
   } catch {
     sp = 0;
   }

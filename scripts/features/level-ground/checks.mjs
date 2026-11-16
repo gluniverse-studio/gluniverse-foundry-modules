@@ -23,7 +23,6 @@
  * Assurance is read after the roll, from the message.
  */
 
-import { Suite } from "../../core/registry.mjs";
 import { registerWrapper, WRAPPER } from "../../core/wrapper.mjs";
 import { SLUGS } from "./constants.mjs";
 import {
@@ -165,8 +164,8 @@ function applyActionDCs(_check, context) {
   const treat = has(options, "action:treat-wounds");
   const firstAid = has(options, "action:administer-first-aid");
   if (!treat && !firstAid) return;
-  // Breath and Blood owns Treat Wounds (and reads Level Ground's rank DCs itself).
-  if (treat && safeEnabled("breath-and-blood")) return;
+  // Breath and Blood's own Treat Wounds already rolls against Level Ground's rank DCs.
+  if (has(options, "breath-and-blood:medicine")) return;
   const printed = context.dc.value;
   // Stopping bleeding is DC 14 under Level Ground, whatever the bleed's own DC
   // (stabilizing is 5 + the recovery DC, Converted). PF2e marks the variant.
@@ -175,14 +174,6 @@ function applyActionDCs(_check, context) {
   context.dc.value = converted;
   context.lvgConverted = true;
 }
-
-const safeEnabled = (id) => {
-  try {
-    return Suite.enabled(id);
-  } catch {
-    return false;
-  }
-};
 
 /** The one Check.roll handler. Every step is guarded: a PF2e change degrades the rule, never the roll. */
 export function checkRollHandler(wrapped, check, context = {}, ...rest) {
@@ -212,11 +203,16 @@ export function registerCheckWrapper() {
 
 /* ── Massive damage ───────────────────────────────────────────────────── */
 
-/** `applyDamage` writes its HP update with `{ damageTaken }` in the options; this catches it for the wrapper. */
+/**
+ * `applyDamage` writes its HP update with `{ damageTaken }` in the options; this catches it for the wrapper.
+ * Keyed by uuid: a chat card's apply button runs `applyDamage` on a contextual clone (same id), while
+ * `preUpdateActor` is handed the live document, so the two only meet by uuid.
+ */
 const pending = new Map();
 
 export function onPreUpdateActor(actor, _changes, options) {
-  if (pending.has(actor) && typeof options?.damageTaken === "number") pending.set(actor, options.damageTaken);
+  const key = actor?.uuid;
+  if (key && pending.has(key) && typeof options?.damageTaken === "number") pending.set(key, options.damageTaken);
 }
 
 async function massiveHandler(wrapped, ...args) {
@@ -225,17 +221,20 @@ async function massiveHandler(wrapped, ...args) {
   const params = args[0] ?? {};
   const combatant = params.token?.combatant ?? actor.combatant ?? null;
   const wasDefeated = !!combatant?.isDefeated;
-  pending.set(actor, null);
+  const key = actor.uuid;
+  pending.set(key, null);
   let result;
   try {
     result = await wrapped(...args);
   } finally {
-    const damageTaken = pending.get(actor);
-    pending.delete(actor);
+    const damageTaken = pending.get(key);
+    pending.delete(key);
     try {
-      const hp = actor.system?.attributes?.hp ?? {};
+      // The clone a chat card applies through never sees the update: read the live document.
+      const live = globalThis.fromUuidSync?.(key) ?? actor;
+      const hp = live.system?.attributes?.hp ?? {};
       if (isMassive({ damageTaken, hpMax: hp.max, spMax: hp.sp?.max ?? 0, hpAfter: hp.value })) {
-        await onMassive(actor, combatant, wasDefeated);
+        await onMassive(live, combatant, wasDefeated);
       }
     } catch (error) {
       console.error("GLUniverse Suite | level-ground: massive damage handling failed", error);

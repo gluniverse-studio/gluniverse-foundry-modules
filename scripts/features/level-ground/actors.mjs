@@ -31,7 +31,7 @@ import {
 import { RULES_VERSION } from "./rules.mjs";
 import { on } from "./settings.mjs";
 import { sheetMarkerHTML } from "./view.mjs";
-import { flagOf, printedLevel, roleOf, stripRecord } from "./world.mjs";
+import { flagOf, maxHPOf, printedLevel, roleOf, stripRecord } from "./world.mjs";
 
 const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
 const notify = (kind, key, data) => ui.notifications?.[kind]?.(t(key, data));
@@ -175,7 +175,8 @@ export async function setRole(actor, role) {
   const printedMax = Number(stored?.printedMax ?? actor._source?.system?.attributes?.hp?.max ?? 0);
   const hp = actor.system?.attributes?.hp ?? {};
   const sourceMax = Number(actor._source?.system?.attributes?.hp?.max ?? 0);
-  const adjustHP = Number(hp.max ?? sourceMax) - sourceMax;
+  // The prepared total before Breath and Blood halves an NPC into two pools.
+  const adjustHP = (maxHPOf(actor) || sourceMax) - sourceMax;
   const wasFull = Number(hp.value) >= Number(hp.max);
 
   const newSource = next === "none" ? printedMax : roleSourceMax({ role: next, printedMax, adjustHP });
@@ -183,9 +184,11 @@ export async function setRole(actor, role) {
   if (next !== "none") update[flagPath(FLAGS.role)] = { role: next, printedMax };
   await actor.update(update);
   if (next === "none" && stored) await actor.unsetFlag(SUITE_ID, FLAGS.role);
-  const preparedMax = Number(actor.system?.attributes?.hp?.max ?? newSource);
+  const preparedMax = maxHPOf(actor) || newSource;
   const value = wasFull ? preparedMax : Math.min(Number(hp.value) || 0, preparedMax);
-  await actor.update({ "system.attributes.hp.value": value });
+  // The value is already capped to the total above; pf2e's own clamp would cap it to the
+  // prepared maximum, which Breath and Blood has halved on a two-pool NPC.
+  await actor.update({ "system.attributes.hp.value": value }, { allowHPOverage: true });
 
   // Markers: drop the old ones, add the new role's.
   const old = actor.items.filter((i) => flagOf(i, FLAGS.roleMarker));
