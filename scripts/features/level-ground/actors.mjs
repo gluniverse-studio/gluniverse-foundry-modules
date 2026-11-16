@@ -149,6 +149,8 @@ function roleItems(role) {
           category: key === "tempo" ? "offensive" : "defensive",
           rules: [],
           traits: { value: [], rarity: "common" },
+          slug: key,
+          frequency: key === "tempo" ? { max: 1, per: "round" } : undefined,
         },
         flags,
       });

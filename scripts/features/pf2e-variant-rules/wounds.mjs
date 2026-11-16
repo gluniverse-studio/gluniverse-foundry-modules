@@ -45,6 +45,26 @@ import { SETTINGS } from "./constants.mjs";
 import { woundPenalties } from "./rules.mjs";
 import { woundsOn, get } from "./settings.mjs";
 import { woundedValue } from "./pf2e.mjs";
+import { Suite } from "../../core/registry.mjs";
+
+/**
+ * Breath and Blood supersedes this rule. Its rules say an existing Lasting
+ * Wounds feature "must be removed when this variant is adopted" (its breather
+ * ends wounded, and its minimum is a floor a healing penalty would break), so
+ * while that feature runs every clause here stands down: no healing modifier
+ * (an existing one is removed on the next sync), no Medicine penalty, and the
+ * rest wrapper passes straight through. Lingering Wounds is the replacement.
+ */
+export function supersededByBreathAndBlood() {
+  try {
+    return Suite.enabled("breath-and-blood");
+  } catch {
+    return false;
+  }
+}
+
+/** Lasting Wounds is on and not superseded. Every clause reads this, never `woundsOn` alone. */
+export const lastingWoundsActive = () => woundsOn() && !supersededByBreathAndBlood();
 
 /** Label is also the identity: PF2e slugs it to find the modifier for removal. */
 const MODIFIER_LABEL = "Lasting Wound";
@@ -75,7 +95,7 @@ function existing(actor) {
 export async function syncActor(actor) {
   if (!actor?.isOfType?.("character", "npc")) return false;
 
-  const wanted = woundsOn() && get(SETTINGS.woundsHealing, true) ? woundPenalties(woundedValue(actor)).healing : 0;
+  const wanted = lastingWoundsActive() && get(SETTINGS.woundsHealing, true) ? woundPenalties(woundedValue(actor)).healing : 0;
   const current = existing(actor);
   const currentValue = current ? Number(current.modifier) || 0 : null;
 
@@ -163,7 +183,7 @@ export function isMedicineCheck(context) {
  * stack a second copy.
  */
 export function applyMedicinePenalty(check, context) {
-  if (!woundsOn() || !get(SETTINGS.woundsMedicine, true)) return;
+  if (!lastingWoundsActive() || !get(SETTINGS.woundsMedicine, true)) return;
   if (typeof check?.push !== "function") return;
   if (!isMedicineCheck(context)) return;
 
@@ -218,7 +238,7 @@ async function setWounded(actor, value) {
 }
 
 async function onRest(wrapped, options = {}, ...rest) {
-  if (!woundsOn() || !get(SETTINGS.woundsBlockRest, true)) return wrapped(options, ...rest);
+  if (!lastingWoundsActive() || !get(SETTINGS.woundsBlockRest, true)) return wrapped(options, ...rest);
 
   const actors = [options?.actors ?? []].flat().filter((a) => a?.isOfType?.("character"));
   const before = new Map();

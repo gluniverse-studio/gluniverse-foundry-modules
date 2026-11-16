@@ -10,7 +10,7 @@
  * The rest of the window's state lives for the session.
  */
 
-import { SETTINGS, SUITE_ID, FLAGS, flagPath } from "./constants.mjs";
+import { SETTINGS, SUITE_ID, FLAGS, TABS, flagPath } from "./constants.mjs";
 import {
   OPT,
   breakAwayRow,
@@ -464,7 +464,7 @@ function appClass() {
 /** Open (or bring forward) the window on a tab. GM only. */
 export function openWindow(tab = null) {
   if (!game.user?.isGM) return null;
-  if (tab) session.tab = tab;
+  if (tab) session.tab = TABS.includes(tab) ? tab : "threat";
   const Cls = appClass();
   _app ??= new Cls();
   _app.render({ force: true });

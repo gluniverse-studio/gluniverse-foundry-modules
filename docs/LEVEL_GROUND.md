@@ -264,6 +264,12 @@ second pass), `lvg.tempo` (combatant), `lvg.unbowed` (actor), `lvg.card`
 - **Elephant Form's un-bracketed values** are written at the effect's level 4
   (no rank 4 elephant form exists); they are overridden by the rank 5 and rank 7
   brackets whenever the spell can be cast, so they never apply.
+- **An untrained character keeps Proficiency without Level's −2 on a battle
+  form's fixed skill.** PF2e's `useFixedStatisticModifier` keeps the "shared"
+  modifiers when a form replaces a skill, and the untrained penalty is one of
+  them. Found live: an untrained sorcerer in *animal form* rolled Athletics +7
+  where the table's +9 was expected; an expert fighter in the same form rolled
+  +9. This is pf2e's behaviour, not the feature's, and is left as it is.
 - **The rank a battle form is written for comes from the effect's level when it
   is created.** pf2e normally sets a spell effect's level to the rank it was
   cast at; an effect dragged onto a sheet by hand keeps the compendium level.
