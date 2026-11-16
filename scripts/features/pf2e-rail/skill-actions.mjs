@@ -225,6 +225,13 @@ export function checksOf(model) {
   return model.rows.filter((r) => r.key !== "perception" && !r.pinned).map((r) => ({ key: r.key, name: r.name, mod: r.mod, rank: r.rank, check: r.check, ...(r.lore ? { lore: true } : {}) }));
 }
 
+/** What rises over a skill's key while the pointer rests on it: that skill's
+ *  row of the sheet, whole. Built from a model with no query and the
+ *  exploration catalogue, so it is every action the skill can roll. */
+export function flyOf(model, check) {
+  return model.rows.find((r) => !r.pinned && r.check === check) ?? null;
+}
+
 /** The Skills tab's keys: what is worth reaching for right now. Pins first,
  *  then — with a target — the actions against it with the best odds, then
  *  the mode's staples. */

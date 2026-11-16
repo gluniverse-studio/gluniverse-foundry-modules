@@ -273,6 +273,18 @@ room to spare also shows the actions worth reaching for (the pins first, then
 the best odds against the target, then the mode's staples) and a key that opens
 the sheet.
 
+**A key rested on offers its skill's actions (the fly).** A mouse that stays on
+a key for `TIMING.flyOpen` raises that skill's row of the sheet over it
+(`flyOf`, `V.SKILLFLY`): the same keys and the same presses as the sheet, so
+an action rolled there is `useSkillAction` with that row's skill, MAP steps
+included. The key under it is still the plain check. The fly stands edge to
+edge on its key (`placeFly`), so the pointer walks up into it over no other
+key; it closes `TIMING.peekClose` after the pointer leaves both, and with one
+fly up the next key's follows at the card peek's pace. It lists every action
+the skill can roll, whatever the mode, and leaves out what the sheet leaves
+out (a trained-only action under an untrained skill). A finger's press never
+opens it, and a key that flies carries no tooltip.
+
 **The skill sheet** (`/`, the tab's ⤢, the GM's Skills press) is
 `finderModel().rows`: Perception, the sixteen skills, the Lores, every one of
 them always there. A row's head is that skill's plain check; beside it is every
