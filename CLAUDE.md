@@ -1928,7 +1928,10 @@ checks grid rolls a character's check in secret (`messageMode: "gm"`, no
 event) or calls for one: a message on the suite socket to the connected
 players, drawn as one press on each rail. It is honoured only when the
 server-attested sender is a GM, `readCall` is total, a hidden DC never leaves
-the GM's client, and nothing is stored. Every skill must stay one press on a
+the GM's client, and nothing is stored. A call for some of the party is sent to
+those characters' players alone (`callRecipients`, one message per player
+naming only their own characters), and it is rolled in the mode the GM chose
+(`CALL_MODES`: public, gm, blind) through PF2e's `messageMode`. Every skill must stay one press on a
 900p screen: a narrow deck's checks rise as a block, never scroll or abbreviate.
 
 **The lang file dies whole.** Foundry expands each language file with

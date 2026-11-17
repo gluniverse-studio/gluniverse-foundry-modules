@@ -35,7 +35,8 @@ import * as S from "./shape.mjs";
 import { diceSettled } from "../../core/dice-wait.mjs";
 import * as K from "./skill-actions.mjs";
 import { EXPLORE_PACK, FEATURE_ID, SAVES, STANDARD_EXPLORATION, STD_EXPLORE, TIMING } from "./const.mjs";
-import { CALL_LIFE, answersCall, callModel, dcOf, makeCall, partyChecks, readCall, statisticOf } from "./calls.mjs";
+import { CALL_LIFE, CALL_MODES, answersCall, callModel, callRecipients, callTargets, dcOf, makeCall, modeOf, outModel, partyChecks, readCall, statisticOf } from "./calls.mjs";
+import { DEGREE_KEYS, degreeOf } from "../../core/pf2e-degree.mjs";
 import { emitSocket, onSocket } from "../../core/socket.mjs";
 import { RailLight } from "./light.mjs";
 import { momentsOf, playMoments } from "./moments.mjs";
@@ -110,9 +111,11 @@ export class RailHost {
     this.open = { drawer: null };
     this.peek = null;
     this.fs = { open: false, query: "", sel: 0, settled: false };
-    /* a check the GM calls for (calls.mjs): the GM's DC and the call that is
-       out, or on a player's client the call that came in. Never stored. */
-    this.calls = { dc: "", showDc: false, out: null, in: null, timer: null };
+    /* a check the GM calls for (calls.mjs): the GM's DC, how the roll is
+       posted, the characters picked (none is everybody) and the call that
+       is out; or on a player's client the call that came in. `fresh` is
+       the call whose arrival has not been drawn yet. Never stored. */
+    this.calls = { dc: "", showDc: false, mode: "public", who: [], out: null, in: null, timer: null, fresh: null };
     this.pending = null;
     /* the press the last roll echoed on: a Hero Point spent on its reroll streaks there */
     this.lastEcho = null;
@@ -440,7 +443,10 @@ export class RailHost {
     const o = { ...m, ...(m.util ? { util: { ...m.util, open: this.open.drawer } } : {}) };
     if (o.deck && m.sk) o.deck = withSkills(o.deck, m.sk, { mode: m.mode ?? "encounter", map: m.turnbar?.map ?? 0, t });
     const call = this.subj?.role !== "gm" && this.subj?.actor?.isOwner ? callModel(this.calls.in, this.subj.actor, { name: checkName, now: Date.now() }) : null;
-    if (call) o.call = call;
+    /* the arrival plays on the first draw of a call and never on a redraw */
+    if (call) { o.call = { ...call, fresh: this.calls.fresh === call.id }; this.calls.fresh = null; }
+    const out = this.subj?.role === "gm" ? this.outNow() : null;
+    if (out) o.calling = { name: out.name, n: out.n, of: out.of };
     if (this.fs.open && m.sk) o.overlay = V.FINDER(this.finder(), t);
     else if (this.open.drawer) { const d = this.drawer(this.open.drawer); if (d) o.overlay = V.DRAWER(d); }
     return o;
@@ -510,9 +516,7 @@ export class RailHost {
     if (kind === "ranks" && m.deck?.spells) return { title: t("GLRAIL.spell.hand"), note: m.deck.spells.dc != null ? `${t("GLRAIL.skill.dcShort", { dc: m.deck.spells.dc })}` : "", body: V.RANKS(m.deck.spells, t) };
     if (kind === "party") {
       if (!game.user.isGM) return null;
-      const out = this.calls.out;
-      return { title: t("GLRAIL.call.open"), wide: true, body: V.PARTYCHECKS(partyChecks(this.partyOf(null, null), { name: checkName }), t,
-        { dc: this.calls.dc, showDc: this.calls.showDc, call: out ? { check: out.check, name: checkName(out.check), answered: [...out.answered] } : null }) };
+      return { title: t("GLRAIL.call.open"), wide: true, body: this.partyBody() };
     }
     if (kind === "statblock") return m.creature ? { title: m.creature.name, note: t("GLRAIL.drawer.statblock"), wide: true, body: V.STATBLOCK(m.creature, t) } : null;
     if (kind === "foes") return { title: t("GLRAIL.drawer.foes"), note: String(m.foes?.foes?.length ?? 0), body: V.DLIST({ rows: (m.foes?.foes ?? []).map((f) => ({ key: `foe:${f.id}`, act: true, name: f.name, icon: f.img, meta: `${t("GLRAIL.gm.level", { n: f.level })} · ${t(`GLRAIL.disp.${f.disp}`)}`, n: f.hp ? `${f.hp[0]}/${f.hp[1]}` : null })) }, t) };
@@ -772,10 +776,19 @@ export class RailHost {
       if (d.act === "close") { if (this.fs.open) this.closeFinder(); else { this.open.drawer = null; this.render(); } return; }
       if (d.act === "frame") return this.frame();
       if (d.act === "call-end") return this.endCall();
+      if (d.act === "call-all") { this.calls.who = []; return this.redrawParty(); }
+      if (d.callWho) { const w = new Set(this.calls.who); if (!w.delete(d.callWho)) w.add(d.callWho); this.calls.who = [...w]; return this.redrawParty(); }
+      if (d.callMode) { this.calls.mode = modeOf(d.callMode); return this.redrawParty(); }
       if (d.act === "call-dismiss") { this.calls.in = null; return this.render(); }
       if (d.call) return this.sendCall(d.call);
       if (d.pcheck) return this.secretCheck(d.pcheck, d.actor);
-      if (d.answer) { const c = this.calls.in; this.calls.in = null; const roll = this.check(d.check, e, c?.id === d.answer ? c.dc : null); this.render(); return roll; }
+      if (d.answer) {
+        const c = this.calls.in?.id === d.answer ? this.calls.in : null;
+        /* a player called for two of their characters still owes the other one */
+        const rest = (c?.who ?? []).filter((id) => id !== actor?.id);
+        this.calls.in = c && rest.length ? { ...c, who: rest } : null;
+        const roll = this.check(d.check, e, c?.dc ?? null, c?.mode ?? null); this.render(); return roll;
+      }
       if (d.act === "hp") return this.editHp(b);
       if (d.hero) { const n = +d.hero, cur = m.plinth.hero?.[0] ?? 0; return actor.update({ "system.resources.heroPoints.value": cur === n ? n - 1 : n }); }
       if (d.pip != null) { const turn = this.turnOf(actor), tb = m.turnbar; turn.pip(d.pip, tb.economy.max); return this.update({ ...m, turnbar: { ...tb, economy: turn.economy(tb.economy) } }); }
@@ -815,36 +828,70 @@ export class RailHost {
     }
   }
 
-  /** `dc` is a called check's, where the GM showed it. */
-  async check(key, event, dc = null) {
-    return statisticOf(this.subj?.actor, key)?.roll({ event, ...(dc != null ? { dc: { value: dc, visible: true } } : {}) });
+  /** `dc` is a called check's, where the GM showed it; `mode` is how the
+   *  GM asked for it to be posted (a private or blind call). PF2e reads the
+   *  event only for its own keys: Ctrl still turns any roll blind. */
+  async check(key, event, dc = null, mode = null) {
+    return statisticOf(this.subj?.actor, key)?.roll({ event, ...(dc != null ? { dc: { value: dc, visible: true } } : {}),
+      ...(CALL_MODES.includes(mode) && mode !== "public" ? { messageMode: mode } : {}) });
   }
 
   /* ── a check the GM calls for (calls.mjs) ───────────────────── */
 
-  /** The GM calls for a check: every connected player gets one press. The
-   *  server delivers it to them alone; the stream login is never one. */
-  sendCall(check) {
-    if (!game.user.isGM) return;
-    const users = game.users.filter((u) => u.active && !u.isGM).map((u) => u.id);
-    if (!users.length) return ui.notifications?.info?.(t("GLRAIL.call.nobody"));
-    const call = makeCall({ check, dc: this.calls.dc, showDc: this.calls.showDc, id: foundry.utils.randomID(), at: Date.now() });
-    if (!call) return;
-    if (this.calls.out) emitSocket(FEATURE_ID, { type: "end", id: this.calls.out.id }, { recipients: users });
-    emitSocket(FEATURE_ID, call, { recipients: users });
-    clearTimeout(this.calls.timer);
-    this.calls.out = { ...call, answered: new Set() };
-    this.calls.timer = setTimeout(() => { this.calls.out = null; if (this.model) this.render(); }, CALL_LIFE);
-    this.render();
+  /** The call that is out, as the grid and the stack's press draw it. */
+  outNow() {
+    const out = this.calls.out;
+    if (!out || !game.user.isGM) return null;
+    const now = Date.now();
+    const m = outModel(out, this.partyOf(null, null).map((p) => ({ id: p.actor.id, name: p.actor.name, img: p.actor.img ?? null })), { name: checkName, now });
+    for (const x of m.targets) if (x.state === "in" && now - (out.answered.get(x.id)?.seen ?? 0) < 900) x.fresh = true;
+    return { ...m, fresh: now - out.at < 900 };
   }
 
-  endCall() {
+  partyBody() {
+    return V.PARTYCHECKS(partyChecks(this.partyOf(null, null), { name: checkName }), t,
+      { dc: this.calls.dc, showDc: this.calls.showDc, mode: this.calls.mode, who: this.calls.who, call: this.outNow() });
+  }
+
+  /** The grid changed under the GM's hand (a pick, a mode, an answer): its
+   *  body is swapped in place. A full draw would rise the drawer again and
+   *  lose the scroll, on every press. */
+  redrawParty() {
+    const body = this.open.drawer === "party" ? this.root?.querySelector("[data-party]")?.parentElement : null;
+    if (!body) return this.model ? this.render() : undefined;
+    const top = body.scrollTop;
+    body.innerHTML = this.partyBody();
+    body.scrollTop = top;
+    this.tips();
+  }
+
+  /** The GM calls for a check. It goes to the players of the called
+   *  characters and to nobody else: the server delivers by recipient, each
+   *  payload names only that player's own characters, and the stream login
+   *  (which holds GM rights) is never one. */
+  sendCall(check) {
+    if (!game.user.isGM) return;
+    const users = game.users.map((u) => ({ id: u.id, active: u.active, isGM: u.isGM, character: u.character?.id ?? null, owns: (id) => !!game.actors.get(id)?.testUserPermission(u, "OWNER") }));
+    const targets = callTargets(this.partyOf(null, null), this.calls.who);
+    const { to, away } = callRecipients(targets, users);
+    const id = foundry.utils.randomID(), at = Date.now(), mode = modeOf(this.calls.mode);
+    const payloads = [...to].map(([user, who]) => [user, makeCall({ check, dc: this.calls.dc, showDc: this.calls.showDc, mode, who, id, at })]);
+    if (payloads.some(([, call]) => !call)) return;
+    if (!payloads.length) return ui.notifications?.info?.(t(targets.length && this.calls.who.length ? "GLRAIL.call.nobodyFor" : "GLRAIL.call.nobody"));
+    this.endCall({ quiet: true });
+    for (const [user, call] of payloads) emitSocket(FEATURE_ID, call, { recipients: [user] });
+    this.calls.out = { id, check, at, mode, until: at + CALL_LIFE, targets, away, users: [...to.keys()], answered: new Map() };
+    this.calls.timer = setTimeout(() => { this.calls.out = null; this.redrawParty(); }, CALL_LIFE);
+    this.redrawParty();
+  }
+
+  endCall({ quiet = false } = {}) {
     const out = this.calls.out;
     if (!out || !game.user.isGM) return;
-    emitSocket(FEATURE_ID, { type: "end", id: out.id }, { recipients: game.users.filter((u) => u.active && !u.isGM).map((u) => u.id) });
+    emitSocket(FEATURE_ID, { type: "end", id: out.id }, { recipients: out.users });
     clearTimeout(this.calls.timer);
     this.calls.out = null;
-    this.render();
+    if (!quiet) this.redrawParty();
   }
 
   /** A call arrives. It is honoured only from a sender the SERVER names and
@@ -853,23 +900,39 @@ export class RailHost {
     if (game.user.isGM || this.stream) return;
     const call = readCall(payload, { fromGM: !!(attested && game.users.get(attested)?.isGM), now: Date.now() });
     if (!call) return;
-    clearTimeout(this.calls.timer);
-    if (call.end) { if (this.calls.in?.id !== call.end) return; this.calls.in = null; }
+    if (call.end) { if (this.calls.in?.id !== call.end) return; clearTimeout(this.calls.timer); this.calls.in = null; }
     else {
+      clearTimeout(this.calls.timer);
       this.calls.in = call;
+      this.calls.fresh = call.id;
       this.calls.timer = setTimeout(() => { this.calls.in = null; if (this.model) this.render(); }, CALL_LIFE);
     }
     if (this.model) this.render();
   }
 
-  /** On the GM's screen: who has rolled the check that was called for. */
+  /** On the GM's screen: who has rolled the check that was called for, and
+   *  what they rolled. The seat is marked as the message arrives; the number
+   *  waits for the dice to land, as every result on the rail does. */
   onAnswer(message) {
     const out = this.calls.out;
     if (!out || !game.user.isGM) return;
     const actorId = message.actor?.id ?? message.speaker?.actor ?? null;
-    if (!answersCall(out, { actorId, ctx: message.flags?.pf2e?.context, at: Date.now() }) || out.answered.has(actorId)) return;
-    out.answered.add(actorId);
-    if (this.open.drawer === "party") this.render();
+    const ctx = message.flags?.pf2e?.context;
+    if (!answersCall(out, { actorId, ctx, at: Date.now() }) || out.answered.has(actorId)) return;
+    out.answered.set(actorId, { seen: Date.now() });
+    this.redrawParty();
+    const roll = message.rolls?.[0], total = Number(roll?.total);
+    if (!Number.isFinite(total)) return;
+    diceSettled(message).then(() => {
+      if (this.calls.out !== out) return;
+      /* PF2e's own outcome where the roll carried the DC; else the GM's DC,
+         which never left this screen, by PF2e's rule (core/pf2e-degree). */
+      const dc = dcOf(this.calls.dc), known = DEGREE_KEYS.indexOf(ctx?.outcome);
+      const natural = roll.dice?.[0]?.faces === 20 ? Number(roll.dice[0].total) : null;
+      const degree = known >= 0 ? known : degreeOf(total, dc, natural) ?? -1;
+      out.answered.set(actorId, { seen: Date.now(), total, ...(degree >= 0 ? { degree } : {}) });
+      this.redrawParty();
+    });
   }
 
   /** The GM rolls a character's check for them, and nobody else sees it:

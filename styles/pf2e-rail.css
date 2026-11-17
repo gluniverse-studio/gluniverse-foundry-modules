@@ -1371,51 +1371,131 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
 
 /* ── the party's checks (the GM's drawer) and a call ──────────────────
    A grid: a row per check, a column per character. The name calls for the
-   check, a number rolls it in secret. Every press states its own size. */
-.gph-pcb { grid-column: 1 / -1; justify-self: start; display: flex; align-items: center; gap: 6px; height: 24px; min-height: 24px; max-height: 24px; margin: 4px 0 2px; padding: 0 10px 0 8px;
-  font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-dim);
-  background: var(--gph-scrim); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs);
-  transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease); }
-.gph-pcb .gph-ic { width: 13px; height: 13px; }
-.gph-pcb:hover { background: var(--gph-ink-3); color: var(--gph-text); }
-.gph-drawer:has(.gph-pc) { right: auto; left: 0; bottom: calc(var(--gph-h) + 64px); width: max-content; max-width: min(760px, 100%); transform-origin: 0 100%; }
+   check, a number rolls it in secret. Above it the call is composed as a
+   sentence: to whom, rolled how, against what. Every press states its own
+   size. Amber is the call and nothing else here. */
+.gph-pcb { grid-column: 1 / -1; justify-self: start; display: flex; align-items: center; gap: 7px; height: 28px; min-height: 28px; max-height: 28px; margin: 6px 0 2px; padding: 0 12px 0 9px;
+  font-size: var(--gl-is-t-meta); font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-text);
+  background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line-2), inset 2px 0 0 var(--gph-amber); clip-path: var(--gph-clip-sm);
+  transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease), translate var(--gl-d-quick) var(--gl-ease); }
+.gph-pcb .gph-ic { width: 14px; height: 14px; color: var(--gph-amber); }
+.gph-pcb:hover { background: var(--gph-ink-4); translate: 0 var(--gl-lift); }
+.gph-pcb:active { scale: var(--gl-is-press); }
+.gph-pcb.is-live { background: var(--gph-amber); color: var(--gph-on-slab); box-shadow: none; }
+.gph-pcb.is-live .gph-ic { color: var(--gph-on-slab); transform-origin: 30% 60%; animation: gph-call-ring calc(var(--gl-d-cinematic) * 2) var(--gl-ease-inout) infinite; }
+.gph-pcb.is-live > em { font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-body); font-weight: 700; letter-spacing: 0; font-variant-numeric: tabular-nums; padding-left: 7px; box-shadow: inset 1px 0 0 color-mix(in srgb, var(--gph-on-slab) 35%, transparent); }
+.gph-drawer:has(.gph-pc) { right: auto; left: 0; bottom: calc(var(--gph-h) + 64px); width: max-content; max-width: min(940px, 100%); transform-origin: 0 100%; }
 .gph-drawer:has(.gph-pc) .gph-dbody { max-height: calc(100vh - var(--gph-h) - 130px); padding: 0 12px 12px; }
-.gph-pc-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 8px 0; background: var(--gph-ink-1); box-shadow: inset 0 -1px 0 var(--gph-line); }
-.gph-pc-dc { flex: none; display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 4px 0 8px; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs); cursor: text; }
+.gph-pc { --gph-pc-tone: var(--gph-amber); }
+
+/* the composer: To · Roll · DC */
+.gph-pc-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 16px; min-height: 42px; padding: 8px 0; background: var(--gph-ink-1); }
+.gph-pc-f { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gph-pc-l { flex: none; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gph-faint); }
+.gph-pc-to { flex: 0 1 auto; }
+.gph-pc-to > b { min-width: 0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gl-is-t-lead); font-weight: 700; color: var(--gph-text); }
+.gph-pc:not([data-all]) .gph-pc-to > b { color: var(--gph-paper); box-shadow: inset 0 -2px 0 var(--gph-paper); padding-bottom: 3px; }
+.gph-pc-all { flex: none; height: 22px; min-height: 22px; max-height: 22px; padding: 0 8px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gph-dim);
+  background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease);
+  animation: gph-pc-pop var(--gl-d-brisk) var(--gl-ease) both; }
+.gph-pc-all:hover { background: var(--gph-ink-5); color: var(--gph-text); }
+.gph-pc-modes { display: flex; gap: 1px; padding: 1px; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs); }
+.gph-pc-mode { display: flex; align-items: center; gap: 6px; height: 26px; min-height: 26px; max-height: 26px; padding: 0 10px 0 8px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gph-faint);
+  transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease), box-shadow var(--gl-d-quick) var(--gl-ease); }
+.gph-pc-mode .gph-ic { width: 13px; height: 13px; flex: none; }
+.gph-pc-mode:hover { color: var(--gph-text); background: var(--gph-ink-2); }
+.gph-pc-mode[aria-checked="true"] { color: var(--gph-on-slab); background: var(--gph-paper); }
+.gph-pc-mode:active, .gph-pc-all:active, .gph-pc-who:active, .gph-pc-end:active { scale: var(--gl-is-press); }
+.gph-pc-dc { flex: none; display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 4px 0 8px; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs); cursor: text; }
 .gph-pc-dc > span { font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.1em; color: var(--gph-faint); }
-.gph-pc-dc input { all: unset; width: 44px; height: 100%; font-family: var(--gph-num); font-size: var(--gl-is-t-lead); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-text); -moz-appearance: textfield; }
+.gph-pc-dc input { all: unset; width: 44px; height: 100%; font-family: var(--gph-num); font-size: var(--gl-is-t-lead); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-text); caret-color: var(--gph-paper); -moz-appearance: textfield; }
 .gph-pc-dc input::placeholder { font-family: var(--gph-font); font-size: var(--gl-is-t-meta); font-weight: 500; color: var(--gph-faint); opacity: 1; }
 .gph-pc-dc input::-webkit-inner-spin-button, .gph-pc-dc input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .gph-pc-dc:focus-within { box-shadow: inset 0 0 0 1px var(--gph-paper); }
-.gph-pc-show { flex: none; display: flex; align-items: center; gap: 6px; font-size: var(--gl-is-t-meta); font-weight: 500; color: var(--gph-dim); cursor: pointer; }
+.gph-pc-show { flex: none; display: flex; align-items: center; gap: 6px; margin-left: -6px; font-size: var(--gl-is-t-meta); font-weight: 500; color: var(--gph-dim); cursor: pointer; }
 .gph .gph-pc-show input[type="checkbox"] { all: unset; flex: none; width: 13px; height: 13px; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-line-2); cursor: pointer; }
 .gph .gph-pc-show input[type="checkbox"]::before, .gph .gph-pc-show input[type="checkbox"]::after { content: none; }
 .gph .gph-pc-show input[type="checkbox"]:checked { background: var(--gph-paper); box-shadow: inset 0 0 0 3px var(--gph-ink-0), inset 0 0 0 4px var(--gph-paper); }
+.gph .gph-pc-show input[type="checkbox"]:focus-visible { outline: var(--gl-is-focus-ring); outline-offset: var(--gl-is-focus-offset); }
 .gph-pc-show:hover { color: var(--gph-text); }
-.gph-pc-hint { min-width: 0; margin-left: auto; font-size: var(--gl-is-t-meta); line-height: 1.35; color: var(--gph-faint); text-align: right; max-width: 34ch; }
-.gph-pc-live { min-width: 0; margin-left: auto; display: flex; align-items: center; gap: 7px; color: var(--gph-amber); }
-.gph-pc-live .gph-ic { width: 13px; height: 13px; flex: none; }
-.gph-pc-live > b { font-size: var(--gl-is-t-body); font-weight: 700; white-space: nowrap; }
-.gph-pc-live > em { font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-meta); font-variant-numeric: tabular-nums; color: var(--gph-dim); white-space: nowrap; }
+
+/* the sentence, said back before it is sent */
+.gph-pc-say { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 34px; padding: 0 10px 0 9px; background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); }
+.gph-pc-say > p { margin: 0; display: flex; align-items: center; gap: 8px; min-width: 0; font-size: var(--gl-is-t-body); font-weight: 600; line-height: 1.25; color: var(--gph-text); }
+.gph-pc-say > p > .gph-ic { width: 14px; height: 14px; flex: none; color: var(--gph-dim); }
+.gph-pc-say > p > span { animation: gph-pc-said var(--gl-d-brisk) var(--gl-ease) both; }
+.gph-pc-say > .gph-pc-key { flex: none; gap: 14px; font-size: var(--gl-is-t-meta); font-weight: 500; color: var(--gph-faint); }
+.gph-pc-key > span { display: flex; align-items: center; gap: 5px; white-space: nowrap; animation: none; }
+.gph-pc-key .gph-ic { width: 12px; height: 12px; flex: none; }
+@keyframes gph-pc-said { from { opacity: 0; translate: 0 4px; } }
+@keyframes gph-pc-pop { from { opacity: 0; scale: 0.8; } }
+
+/* the call that is out */
+.gph-pc-live { position: relative; display: flex; align-items: center; gap: 10px; min-height: 34px; padding-right: 5px; background: var(--gph-ink-0); box-shadow: inset 0 0 0 1px var(--gph-amber); clip-path: var(--gph-clip-xs); }
+.gph-pc-live-k { align-self: stretch; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 11px 0 9px; background: var(--gph-amber); color: var(--gph-on-slab); font-size: var(--gl-is-t-meta); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.gph-pc-live-k .gph-ic { width: 14px; height: 14px; flex: none; transform-origin: 30% 60%; animation: gph-call-ring calc(var(--gl-d-cinematic) * 2) var(--gl-ease-inout) infinite; }
+.gph-pc-live-n { flex: none; font-size: var(--gl-is-t-title); font-weight: 700; color: var(--gph-text); white-space: nowrap; }
+.gph-pc-live-m { flex: none; display: flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 6px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gph-amber); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gph-amber) 55%, transparent); clip-path: polygon(0 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+.gph-pc-live-m .gph-ic { width: 12px; height: 12px; }
+.gph-pc-chips { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; padding: 5px 0; }
+.gph-pc-chip { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px 0 2px; background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line-2); color: var(--gph-dim); white-space: nowrap; }
+.gph-pc-chip > img { width: 20px; height: 20px; flex: none; object-fit: cover; object-position: 50% 12%; border: 0; }
+.gph-pc-chip > b { font-size: var(--gl-is-t-meta); font-weight: 650; }
+.gph-pc-chip > em { font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-lead); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gph-text); }
+.gph-pc-chip > i { font-style: normal; font-size: var(--gl-is-t-meta); color: var(--gph-steel); }
+.gph-pc-chip > .gph-ic { width: 12px; height: 12px; color: var(--gph-green); }
+.gph-pc-chip[data-state="in"] { color: var(--gph-text); box-shadow: inset 0 0 0 1px var(--gph-line-2), inset 0 -2px 0 var(--gph-pc-chip-tone, var(--gph-paper)); }
+.gph-pc-chip[data-degree="3"], .gph-pc-chip[data-degree="2"] { --gph-pc-chip-tone: var(--gph-green); }
+.gph-pc-chip[data-degree="1"] { --gph-pc-chip-tone: var(--gph-steel); }
+.gph-pc-chip[data-degree="0"] { --gph-pc-chip-tone: var(--gph-red); }
+.gph-pc-chip[data-degree] > em { color: var(--gph-pc-chip-tone); }
+.gph-pc-chip[data-degree="3"] { background: var(--gph-green); color: var(--gph-on-slab); }
+.gph-pc-chip[data-degree="3"] > em { color: var(--gph-on-slab); }
+.gph-pc-chip[data-state="away"] { opacity: 0.55; }
+.gph-pc-chip[data-fresh] { animation: gph-pc-landed var(--gl-d-move) var(--gl-ease) both; }
+@keyframes gph-pc-landed { 0% { scale: 1.18; background: var(--gph-paper); color: var(--gph-on-slab); } 100% { } }
+.gph-pc-dots { display: inline-flex; align-items: center; gap: 3px; height: 12px; }
+.gph-pc-dots > s { width: 3px; height: 3px; background: var(--gph-amber); animation: gph-pc-wait var(--gl-d-cinematic) var(--gl-ease-inout) infinite; }
+.gph-pc-dots > s:nth-child(2) { animation-delay: calc(var(--gl-d-cinematic) / 6); }
+.gph-pc-dots > s:nth-child(3) { animation-delay: calc(var(--gl-d-cinematic) / 3); }
+@keyframes gph-pc-wait { 0%, 60%, 100% { opacity: 0.25; translate: 0 0; } 30% { opacity: 1; translate: 0 -2px; } }
 .gph-pc-end { flex: none; height: 24px; min-height: 24px; max-height: 24px; padding: 0 10px; font-size: var(--gl-is-t-meta); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gph-text);
   background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-line-2); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease); }
 .gph-pc-end:hover { background: var(--gph-ink-5); }
+.gph-pc-live.is-fresh { animation: gph-call-wipe var(--gl-d-move) var(--gl-ease) both; }
+.gph-pc-live.is-fresh .gph-pc-live-k { animation: gph-call-strike var(--gl-d-reveal) var(--gl-ease) both; }
+
 /* Foundry styles every table (a striped body, a filled head, borders) and
    every checkbox; the grid states its own, at the rail's specificity. */
-.gph .gph-pct { width: auto; border-collapse: separate; border-spacing: 2px; margin: 4px -2px 0; border: 0; background: none; }
+.gph .gph-pct { width: 100%; border-collapse: separate; border-spacing: 2px; margin: 4px -2px 0; border: 0; background: none; }
 .gph .gph-pct :is(thead, tbody, tr, th, td) { background: none; border: 0; text-shadow: none; }
-.gph .gph-pct thead th { padding: 6px 2px 5px; vertical-align: bottom; font-weight: 600; }
-.gph-pct thead th > img { display: block; width: 26px; height: 26px; margin: 0 auto 3px; object-fit: cover; object-position: 50% 12%; border: 0; box-shadow: 0 0 0 1px var(--gph-line-2); }
-.gph-pct thead th > span { display: block; max-width: 112px; margin: 0 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gl-is-t-meta); font-weight: 650; color: var(--gph-text); }
-.gph-pct tbody th { padding: 0; text-align: left; font-weight: inherit; }
-.gph-pct td { padding: 0; }
+.gph .gph-pct thead th { padding: 4px 0 3px; vertical-align: bottom; font-weight: 600; }
+/* a column head picks its character for the call */
+.gph-pc-who { position: relative; display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-width: 96px; height: 34px; min-height: 34px; max-height: 34px; padding: 0 8px 0 4px; color: var(--gph-text);
+  background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs);
+  transition: background var(--gl-d-quick) var(--gl-ease), opacity var(--gl-d-brisk) var(--gl-ease), box-shadow var(--gl-d-quick) var(--gl-ease); }
+.gph-pc-who > img { flex: none; width: 26px; height: 26px; object-fit: cover; object-position: 50% 12%; border: 0; }
+.gph-pc-who > span { min-width: 0; max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gl-is-t-body); font-weight: 650; }
+.gph-pc-who > .gph-ic { flex: none; width: 0; height: 12px; opacity: 0; color: var(--gph-on-slab); transition: width var(--gl-d-brisk) var(--gl-ease), opacity var(--gl-d-quick) var(--gl-ease); }
+.gph-pc-who:hover { background: var(--gph-ink-4); box-shadow: inset 0 0 0 1px var(--gph-line-2); }
+.gph-pc-who[aria-pressed="true"] { background: var(--gph-paper); color: var(--gph-on-slab); box-shadow: none; }
+.gph-pc-who[aria-pressed="true"] > .gph-ic { width: 12px; opacity: 1; }
+.gph-pc:not([data-all]) .gph-pc-who[aria-pressed="false"] { opacity: 0.5; }
+.gph-pc:not([data-all]) .gph-pc-who[aria-pressed="false"]:hover { opacity: 1; }
+.gph-pct tbody th { width: 176px; padding: 0; text-align: left; font-weight: inherit; }
+.gph-pct td { padding: 0; transition: opacity var(--gl-d-brisk) var(--gl-ease); }
+.gph-pct td.is-out { opacity: 0.55; }
+.gph-pct td.is-out:hover { opacity: 1; }
 .gph-pct tr[data-first] > * { padding-top: 6px; }
-.gph-pc-call { display: flex; align-items: center; gap: 7px; width: 100%; min-width: 150px; height: 22px; min-height: 22px; max-height: 22px; padding: 0 10px 0 7px; color: var(--gph-dim);
+.gph-pc-call { display: flex; align-items: center; gap: 7px; width: 100%; min-width: 170px; height: 22px; min-height: 22px; max-height: 22px; padding: 0 6px 0 7px; color: var(--gph-dim);
   background: var(--gph-ink-2); box-shadow: inset 0 0 0 1px var(--gph-line); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease); }
-.gph-pc-call .gph-ic { width: 12px; height: 12px; flex: none; opacity: 0.55; transition: opacity var(--gl-d-quick) var(--gl-ease); }
+.gph-pc-call .gph-ic { width: 12px; height: 12px; flex: none; opacity: 0.55; transform-origin: 30% 60%; transition: opacity var(--gl-d-quick) var(--gl-ease); }
 .gph-pc-call > span { font-size: var(--gl-is-t-body); font-weight: 650; white-space: nowrap; color: var(--gph-text); }
-.gph-pc-call:hover { background: var(--gph-ink-4); }
-.gph-pc-call:hover .gph-ic { opacity: 1; color: var(--gph-amber); }
+.gph-pc-call > em { margin-left: auto; font-style: normal; font-size: var(--gl-is-t-meta); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gph-amber); opacity: 0; translate: -4px 0;
+  transition: opacity var(--gl-d-quick) var(--gl-ease), translate var(--gl-d-quick) var(--gl-ease); }
+.gph-pc-call:hover { background: var(--gph-ink-4); box-shadow: inset 0 0 0 1px var(--gph-line-2), inset 2px 0 0 var(--gph-amber); }
+.gph-pc-call:hover .gph-ic { opacity: 1; color: var(--gph-amber); animation: gph-call-ring var(--gl-d-slow) var(--gl-ease-inout); }
+.gph-pc-call:hover > em, .gph-pc-call:focus-visible > em { opacity: 1; translate: 0 0; }
 .gph-pc-cell { position: relative; display: grid; place-items: center; width: 100%; min-width: 64px; height: 22px; min-height: 22px; max-height: 22px; padding: 0 6px;
   font-family: var(--gph-num); font-size: var(--gl-is-t-body); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-dim);
   background: var(--gph-ink-2); transition: background var(--gl-d-quick) var(--gl-ease), color var(--gl-d-quick) var(--gl-ease); }
@@ -1428,31 +1508,69 @@ button.gph-mac:hover { background: var(--gph-ink-4); }
 .gph-pc-cell.is-best { color: var(--gph-text); font-weight: 700; background: var(--gph-ink-4); }
 .gph-pc-cell:hover { background: var(--gph-ink-5); color: var(--gph-text); }
 .gph-pc-cell:active, .gph-pc-call:active { scale: var(--gl-is-press); }
-.gph-pct tr.is-called .gph-pc-call { background: var(--gph-amber); color: var(--gph-on-slab); }
-.gph-pct tr.is-called .gph-pc-call > span { color: var(--gph-on-slab); }
+.gph-pct tr.is-called .gph-pc-call { background: var(--gph-amber); color: var(--gph-on-slab); box-shadow: none; }
+.gph-pct tr.is-called .gph-pc-call > span, .gph-pct tr.is-called .gph-pc-call > em { color: var(--gph-on-slab); }
 .gph-pct tr.is-called .gph-pc-call .gph-ic { opacity: 1; color: var(--gph-on-slab); }
 .gph-pct tr.is-called .gph-pc-cell.is-in { box-shadow: inset 0 0 0 1px var(--gph-green); color: var(--gph-green); }
+.gph-pct tr.is-called .gph-pc-cell.is-asked { color: var(--gph-text); }
+.gph-pct tr.is-called .gph-pc-cell.is-asked::before { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px var(--gph-amber); animation: gph-pc-asked calc(var(--gl-d-cinematic) * 1.5) var(--gl-ease-inout) infinite; pointer-events: none; }
+@keyframes gph-pc-asked { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 
-/* A call on a player's rail: beside the turn bar, over the deck. The slab
-   is amber, the one tone nothing else on the rail's top edge uses. */
-.gph-call { position: absolute; left: calc(var(--gph-vw) + var(--gph-sw) + 14px); bottom: calc(100% + 3px); z-index: 7; display: flex; align-items: stretch; height: 34px; max-width: calc(100% - var(--gph-vw) - var(--gph-sw) - 14px);
-  background: var(--gph-ink-1); box-shadow: inset 0 0 0 1px var(--gph-amber); clip-path: var(--gph-clip-xs);
-  animation: gph-call-in var(--gl-d-move) var(--gl-ease) both; }
+/* A call on a player's rail: over the turn bar, where the eye already is
+   for the turn. Amber is the call's and nothing else on the rail's top
+   edge uses it, so the slab reads as "somebody is asking" before a word
+   of it is read. The check is set at the size of a name; the paper press
+   is the only primary on the rail while it stands. */
+.gph-call { position: absolute; left: calc(var(--gph-vw) + var(--gph-sw) + 14px); bottom: calc(100% + 3px); z-index: 7; display: flex; align-items: stretch; height: 48px; max-width: calc(100% - var(--gph-vw) - var(--gph-sw) - 14px);
+  background: var(--gph-ink-1); box-shadow: inset 0 0 0 1px var(--gph-amber); clip-path: var(--gph-clip-sm); filter: drop-shadow(0 10px 18px var(--gl-is-shade)); }
 .gph:not(:has(.gph-turnbar)) .gph-call { left: calc(var(--gph-vw) + 6px); }
-.gph-call-k { flex: none; display: flex; align-items: center; gap: 7px; padding: 0 12px 0 9px; background: var(--gph-amber); color: var(--gph-on-slab);
-  font-size: var(--gl-is-t-meta); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-.gph-call-k .gph-ic { width: 13px; height: 13px; }
-.gph-call-roll { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; height: 34px; min-height: 34px; max-height: 34px; padding: 0 14px 0 12px; color: var(--gph-text);
+.gph-call-k { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 16px 0 12px; background: var(--gph-amber); color: var(--gph-on-slab); white-space: nowrap; }
+.gph-call-who { display: flex; align-items: center; gap: 7px; font-size: var(--gl-is-t-meta); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.gph-call-who .gph-ic { width: 15px; height: 15px; flex: none; transform-origin: 30% 60%; animation: gph-call-ring calc(var(--gl-d-cinematic) * 2) var(--gl-ease-inout) infinite; }
+.gph-call-m { display: flex; align-items: center; gap: 6px; font-size: var(--gl-is-t-meta); font-weight: 650; }
+.gph-call-m .gph-ic { width: 13px; height: 13px; flex: none; margin: 0 1px; }
+.gph-call-roll { position: relative; flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; height: 48px; min-height: 48px; max-height: 48px; padding: 0 10px 0 16px; color: var(--gph-text);
   transition: background var(--gl-d-quick) var(--gl-ease); }
-.gph-call-roll > b { font-size: var(--gl-is-t-title); font-weight: 700; white-space: nowrap; }
-.gph-call-roll > em { font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-title); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-paper); }
-.gph-call-roll > i { font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-meta); font-weight: 600; color: var(--gph-dim); white-space: nowrap; }
-.gph-call-roll:hover { background: var(--gph-ink-4); }
-.gph-call-roll:active { scale: var(--gl-is-press); }
-.gph-call > .gph-x { align-self: center; width: 26px; height: 26px; min-height: 26px; max-height: 26px; margin-right: 3px; }
+.gph-call-roll > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--gl-is-t-display); font-weight: 750; letter-spacing: -0.01em; line-height: 1.1; white-space: nowrap; }
+.gph-call-roll > em { font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-display); font-weight: 500; font-variant-numeric: tabular-nums; color: var(--gph-amber); }
+.gph-call-roll > i { flex: none; align-self: center; display: grid; place-items: center; height: 24px; padding: 0 8px; font-style: normal; font-family: var(--gph-num); font-size: var(--gl-is-t-lead); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gph-text); white-space: nowrap;
+  background: var(--gph-ink-3); box-shadow: inset 0 0 0 1px var(--gph-line-2); }
+.gph-call-go { flex: none; display: flex; align-items: center; gap: 7px; height: 30px; margin-left: 8px; padding: 0 13px 0 10px; font-size: var(--gl-is-t-body); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gph-on-slab);
+  background: var(--gph-paper); clip-path: var(--gph-clip-xs); transition: background var(--gl-d-quick) var(--gl-ease), translate var(--gl-d-quick) var(--gl-ease); }
+.gph-call-go .gph-ic { width: 15px; height: 15px; flex: none; transition: rotate var(--gl-d-move) var(--gl-ease); }
+.gph-call-roll:hover { background: var(--gph-ink-3); }
+.gph-call-roll:hover .gph-call-go { background: var(--gph-amber); translate: 0 var(--gl-lift); }
+.gph-call-roll:hover .gph-call-go .gph-ic { rotate: 120deg; }
+.gph-call-roll:active .gph-call-go { scale: var(--gl-is-press); }
+.gph-call-roll:focus-visible { outline: var(--gl-is-focus-ring); outline-offset: -3px; }
+.gph-call > .gph-x { align-self: center; width: 26px; height: 26px; min-height: 26px; max-height: 26px; margin: 0 6px 0 2px; }
+/* the time it has left: one fixed keyframe entered by a negative delay, so a
+   redraw picks the drain up where the clock is, never from full */
+.gph-call-life { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gph-paper); transform-origin: 0 50%; pointer-events: none;
+  animation: gph-call-drain var(--gph-call-life, 120000ms) linear var(--gph-call-at, 0ms) both; }
+@keyframes gph-call-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 /* A narrow deck's checks rise where the call would stand: it steps up over the turn bar. */
-@container gph (max-width: 1559px) { .gph-call, .gph:not(:has(.gph-turnbar)) .gph-call { left: calc(var(--gph-vw) + 6px); bottom: calc(100% + 32px); max-width: calc(100% - var(--gph-vw) - 6px); } }
-@keyframes gph-call-in { from { opacity: 0; translate: 0 6px; } }
+@container gph (max-width: 1559px) { .gph-call, .gph:not(:has(.gph-turnbar)) .gph-call { left: calc(var(--gph-vw) + 6px); bottom: calc(100% + 45px); max-width: calc(100% - var(--gph-vw) - 6px); } }
+
+/* The arrival, once (`is-fresh`): the bar is drawn out from its left edge,
+   the slab strikes paper and settles to amber, the horn rings, the check
+   and its press land in turn, and a light crosses it. It then knocks once
+   more, for the player who was looking at the map. */
+.gph-call.is-fresh { animation: gph-call-wipe var(--gl-d-move) var(--gl-ease) both, gph-call-knock var(--gl-d-slow) var(--gl-ease) var(--gl-d-reveal); }
+.gph-call.is-fresh .gph-call-k { animation: gph-call-strike var(--gl-d-reveal) var(--gl-ease) both; }
+.gph-call.is-fresh .gph-call-who .gph-ic { animation: gph-call-ring var(--gl-d-slow) var(--gl-ease-inout) 2, gph-call-ring calc(var(--gl-d-cinematic) * 2) var(--gl-ease-inout) calc(var(--gl-d-slow) * 2) infinite; }
+.gph-call.is-fresh .gph-call-roll > * { animation: gph-call-land var(--gl-d-swift) var(--gl-ease) both; animation-delay: calc(var(--gl-d-quick) + var(--gl-stagger) * var(--i, 0)); }
+.gph-call.is-fresh .gph-call-roll > em { --i: 1; }
+.gph-call.is-fresh .gph-call-roll > i { --i: 2; }
+.gph-call.is-fresh .gph-call-roll > .gph-call-go { --i: 3; animation-name: gph-call-go; animation-duration: var(--gl-d-move); }
+.gph-call.is-fresh::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--gph-amber) 55%, transparent) 50%, transparent 70%); animation: gph-sweep var(--gl-d-splash) var(--gl-ease-inout) var(--gl-d-brisk) both; }
+@keyframes gph-call-wipe { from { clip-path: polygon(0 0, 0 0, 0 calc(100% - var(--gl-is-cut-sm)), 0 100%, 0 100%); translate: 0 8px; } }
+@keyframes gph-call-strike { 0%, 28% { background: var(--gph-paper); } }
+@keyframes gph-call-land { from { opacity: 0; translate: 0 9px; filter: blur(3px); } }
+@keyframes gph-call-go { 0% { opacity: 0; scale: 0.7; } 60% { opacity: 1; scale: 1.08; background: var(--gph-amber); } 100% { } }
+@keyframes gph-call-knock { 0%, 40%, 100% { translate: 0 0; } 12%, 52% { translate: 0 -5px; } 24%, 64% { translate: 0 0; } }
+@keyframes gph-call-ring { 0%, 36%, 100% { rotate: 0deg; } 6%, 22% { rotate: -16deg; } 14%, 30% { rotate: 10deg; } }
 
 /* A short screen (900p): the sheet's lines close up, so every skill is on
    it at once with nothing to scroll. */

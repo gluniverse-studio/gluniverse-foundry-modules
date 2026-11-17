@@ -10,7 +10,7 @@
 export const PRESSES = Object.freeze({
   attrs: ["data-act", "data-hero", "data-pip", "data-check", "data-strike", "data-variant", "data-dmg", "data-crit", "data-toggle", "data-stance",
     "data-action", "data-spell", "data-rank-step", "data-tab", "data-item", "data-skill-action", "data-stat", "data-find", "data-explore", "data-drawer", "data-row",
-    "data-seat", "data-foe", "data-pa", "data-reload", "data-call", "data-pcheck"],
-  acts: ["fold", "close", "frame", "hp", "raise", "expand", "finder", "ranks", "peek-strike", "explore", "sheet", "call-end", "call-dismiss"],
+    "data-seat", "data-foe", "data-pa", "data-reload", "data-call", "data-pcheck", "data-call-who", "data-call-mode"],
+  acts: ["fold", "close", "frame", "hp", "raise", "expand", "finder", "ranks", "peek-strike", "explore", "sheet", "call-end", "call-dismiss", "call-all"],
   drawers: ["rest", "macros", "sheet", "effects", "inventory", "strikes", "foes", "ranks", "explore", "statblock", "party"],
 });
