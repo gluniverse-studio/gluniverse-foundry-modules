@@ -678,41 +678,79 @@ export const SEAT = (s, t) => {
 
    - a NUMBER rolls that character's check for the GM alone, blind to the
      table (a secret Perception, a Stealth nobody may know the result of);
-   - a NAME calls for the check: every player gets one press on their rail.
-     The DC field is the GM's; it leaves the screen only when "show" is on.
+   - a NAME calls for the check: each called player gets one press on
+     their rail.
 
-   While a call stands, its row is lit and each cell says who has rolled. */
-export const PARTYCHECKS = (p, t, { dc = "", showDc = false, call = null } = {}) => {
+   Above the grid the call is composed, left to right, as the sentence the
+   GM would say: TO whom (the column heads are the picker; nobody picked is
+   everybody), HOW it is rolled (open, private to the roller and the GM, or
+   blind), against which DC. The line under it says that sentence back in
+   words before anything is sent.
+
+   While a call stands that line is the call: its check, a seat per called
+   character (waiting, rolled and what they rolled, or away), and the time
+   it has left draining along its foot. */
+const MODE_ICON = { public: ICON.open, gm: ICON.lock, blind: ICON.secret };
+const MODES = ["public", "gm", "blind"];
+const namesOf = (list, t) => (list.length <= 2 ? list.join(t("GLRAIL.call.and")) : t("GLRAIL.call.andMore", { name: list[0], n: list.length - 1 }));
+const lifeStyle = (c) => (c?.life ? ` style="--gph-call-life:${Math.round(c.life)}ms;--gph-call-at:-${Math.round(Math.max(0, c.life - (c.left ?? c.life)))}ms"` : "");
+const SEATCHIP = (x, t) => `<span class="gph-pc-chip" data-state="${x.state}"${x.degree != null ? ` data-degree="${x.degree}"` : ""}${x.fresh ? " data-fresh" : ""} title="${esc(`${x.name}: ${t(`GLRAIL.call.state.${x.state}`)}`)}">${x.img ? `<img src="${esc(x.img)}" alt="">` : ""}<b>${esc(x.name)}</b>${
+  x.state === "in" ? (x.total != null ? `<em>${esc(x.total)}</em>` : ICON.tick) : x.state === "away" ? `<i>${esc(t("GLRAIL.call.state.away"))}</i>` : `<i class="gph-pc-dots"><s></s><s></s><s></s></i>`}</span>`;
+
+export const PARTYCHECKS = (p, t, { dc = "", showDc = false, mode = "public", who = [], call = null } = {}) => {
   if (!p?.members?.length) return `<p class="gph-dnone">${esc(t("GLRAIL.call.noParty"))}</p>`;
-  const got = new Set(call?.answered ?? []);
+  if (!MODES.includes(mode)) mode = "public";
+  const pick = new Set(who.filter((id) => p.members.some((m) => m.id === id)));
+  const all = !pick.size || pick.size === p.members.length;
+  const to = all ? t("GLRAIL.call.everyone") : namesOf(p.members.filter((m) => pick.has(m.id)).map((m) => m.name), t);
+  const asked = new Map((call?.targets ?? []).map((x) => [x.id, x]));
   return `
-<div class="gph-pc" data-party>
+<div class="gph-pc" data-party data-mode="${mode}"${all ? " data-all" : ""}>
   <div class="gph-pc-bar">
+    <div class="gph-pc-f gph-pc-to"><span class="gph-pc-l">${esc(t("GLRAIL.call.to"))}</span><b>${esc(to)}</b>${all ? "" : `<button type="button" class="gph-pc-all" data-act="call-all" title="${esc(t("GLRAIL.call.allTitle"))}">${esc(t("GLRAIL.call.everyone"))}</button>`}</div>
+    <div class="gph-pc-f"><span class="gph-pc-l" id="gph-pc-how">${esc(t("GLRAIL.call.how"))}</span><div class="gph-pc-modes" role="radiogroup" aria-labelledby="gph-pc-how">${MODES.map((m) => `<button type="button" role="radio" class="gph-pc-mode" data-call-mode="${m}" aria-checked="${m === mode}" title="${esc(t(`GLRAIL.call.modeTitle.${m}`))}">${MODE_ICON[m]}<span>${esc(t(`GLRAIL.call.mode.${m}`))}</span></button>`).join("")}</div></div>
     <label class="gph-pc-dc"><span>${esc(t("GLRAIL.call.dc"))}</span><input type="number" data-call-dc inputmode="numeric" min="0" max="60" step="1" value="${esc(dc ?? "")}" placeholder="${esc(t("GLRAIL.call.dcNone"))}" aria-label="${esc(t("GLRAIL.call.dcSaid"))}"></label>
     <label class="gph-pc-show"><input type="checkbox" data-call-show${showDc ? " checked" : ""}><span>${esc(t("GLRAIL.call.show"))}</span></label>
-    ${call ? `<span class="gph-pc-live" aria-live="polite">${ICON.call}<b>${esc(t("GLRAIL.call.live", { name: call.name }))}</b><em>${esc(t("GLRAIL.call.count", { n: got.size, of: p.members.length }))}</em></span><button type="button" class="gph-pc-end" data-act="call-end">${esc(t("GLRAIL.call.end"))}</button>`
-      : `<span class="gph-pc-hint">${esc(t("GLRAIL.call.hint"))}</span>`}
   </div>
+  ${call ? `<div class="gph-pc-live${call.fresh ? " is-fresh" : ""}" data-mode="${MODES.includes(call.mode) ? call.mode : "public"}" aria-live="polite"${lifeStyle(call)}>
+    <span class="gph-pc-live-k">${ICON.call}<span>${esc(t("GLRAIL.call.calling"))}</span></span>
+    <b class="gph-pc-live-n">${esc(call.name)}</b>
+    ${MODES.includes(call.mode) && call.mode !== "public" ? `<span class="gph-pc-live-m">${MODE_ICON[call.mode]}${esc(t(`GLRAIL.call.mode.${call.mode}`))}</span>` : ""}
+    <span class="gph-pc-chips">${call.targets.map((x) => SEATCHIP(x, t)).join("")}</span>
+    <em class="gph-sr">${esc(t("GLRAIL.call.count", { n: call.n, of: call.of }))}</em>
+    <button type="button" class="gph-pc-end" data-act="call-end">${esc(t("GLRAIL.call.end"))}</button>
+    <i class="gph-call-life" aria-hidden="true"></i>
+  </div>`
+    : `<div class="gph-pc-say"><p>${MODE_ICON[mode]}<span>${esc(t(`GLRAIL.call.say.${mode}`, { who: to }))}</span></p><p class="gph-pc-key"><span>${ICON.call}${esc(t("GLRAIL.call.keyName"))}</span><span>${ICON.secret}${esc(t("GLRAIL.call.keyNumber"))}</span></p></div>`}
   <table class="gph-pct">
-    <thead><tr><th scope="col"><span class="gph-sr">${esc(t("GLRAIL.group.checks"))}</span></th>${p.members.map((m) => `<th scope="col" title="${esc(m.name)}">${m.img ? `<img src="${esc(m.img)}" alt="">` : ""}<span>${esc(m.name)}</span></th>`).join("")}</tr></thead>
+    <thead><tr><th scope="col"><span class="gph-sr">${esc(t("GLRAIL.group.checks"))}</span></th>${p.members.map((m) => `<th scope="col"><button type="button" class="gph-pc-who" data-call-who="${esc(m.id)}" aria-pressed="${!all && pick.has(m.id)}" title="${esc(t(!all && pick.has(m.id) ? "GLRAIL.call.whoOff" : "GLRAIL.call.whoOn", { who: m.name }))}">${m.img ? `<img src="${esc(m.img)}" alt="">` : ""}<span>${esc(m.name)}</span>${ICON.tick}</button></th>`).join("")}</tr></thead>
     <tbody>${p.rows.map((r, i) => `
       <tr data-group="${r.group}"${call?.check === r.check ? ' class="is-called"' : ""}${i && p.rows[i - 1].group !== r.group ? " data-first" : ""}>
-        <th scope="row"><button type="button" class="gph-pc-call" data-call="${esc(r.check)}" title="${esc(t("GLRAIL.call.callFor", { name: r.name }))}">${ICON.call}<span>${esc(r.name)}</span></button></th>
-        ${r.cells.map((c, ci) => `<td>${c.mod == null ? "" : `<button type="button" class="gph-pc-cell${c.best ? " is-best" : ""}${call?.check === r.check && got.has(c.id) ? " is-in" : ""}" data-pcheck="${esc(r.check)}" data-actor="${esc(c.id)}" data-rank="${c.rank}" title="${esc(t("GLRAIL.call.secretFor", { name: r.name, who: p.members[ci].name }))}" aria-label="${esc(`${p.members[ci].name}, ${r.name} ${sign(c.mod)}`)}">${sign(c.mod)}</button>`}</td>`).join("")}
+        <th scope="row"><button type="button" class="gph-pc-call" data-call="${esc(r.check)}" title="${esc(t("GLRAIL.call.callFor", { name: r.name, who: to }))}">${ICON.call}<span>${esc(r.name)}</span><em aria-hidden="true">${esc(t("GLRAIL.call.go"))}</em></button></th>
+        ${r.cells.map((c, ci) => { const a = call?.check === r.check ? asked.get(c.id) : null; return `<td${!all && !pick.has(c.id) ? ' class="is-out"' : ""}>${c.mod == null ? "" : `<button type="button" class="gph-pc-cell${c.best ? " is-best" : ""}${a?.state === "in" ? " is-in" : a?.state === "wait" ? " is-asked" : ""}" data-pcheck="${esc(r.check)}" data-actor="${esc(c.id)}" data-rank="${c.rank}" title="${esc(t("GLRAIL.call.secretFor", { name: r.name, who: p.members[ci].name }))}" aria-label="${esc(`${p.members[ci].name}, ${r.name} ${sign(c.mod)}`)}">${sign(c.mod)}</button>`}</td>`; }).join("")}
       </tr>`).join("")}
     </tbody>
   </table>
 </div>`;
 };
 
-/* A call on a player's rail: one press, the check named whole, the
-   character's own modifier, the DC only where the GM showed it. */
-export const CALLBAR = (c, t) => `
-<div class="gph-call" role="alert" data-call-id="${esc(c.id)}">
-  <span class="gph-call-k">${ICON.call}${esc(t("GLRAIL.call.asks"))}</span>
-  <button type="button" class="gph-call-roll" data-check="${esc(c.check)}" data-answer="${esc(c.id)}" title="${esc(t("GLRAIL.check.roll", { name: c.name }))}"><b>${esc(c.name)}</b><em>${sign(c.mod)}</em>${c.dc != null ? `<i>${esc(t("GLRAIL.skill.dcShort", { dc: c.dc }))}</i>` : ""}</button>
+/* A call on a player's rail. It is the one thing on the rail that was not
+   there a moment ago and wants an answer, so it is the loudest thing on it:
+   an amber slab that says who is asking (and, for a roll that is not the
+   table's, who will see it), the check named whole at the size of a name,
+   the character's own modifier, the DC only where the GM showed it, and a
+   paper press that says what to do. The foot drains by the time it has
+   left. `fresh` plays its arrival once; a redraw does not replay it. */
+export const CALLBAR = (c, t) => {
+  const mode = MODES.includes(c.mode) ? c.mode : "public";
+  return `
+<div class="gph-call${c.fresh ? " is-fresh" : ""}" role="alert" data-call-id="${esc(c.id)}" data-mode="${mode}"${lifeStyle(c)}>
+  <span class="gph-call-k"><span class="gph-call-who">${ICON.call}${esc(t("GLRAIL.call.asks"))}</span>${mode !== "public" ? `<span class="gph-call-m">${MODE_ICON[mode]}${esc(t(`GLRAIL.call.told.${mode}`))}</span>` : ""}</span>
+  <button type="button" class="gph-call-roll" data-check="${esc(c.check)}" data-answer="${esc(c.id)}" title="${esc(t(`GLRAIL.call.rollTitle.${mode}`, { name: c.name }))}"><b>${esc(c.name)}</b><em>${sign(c.mod)}</em>${c.dc != null ? `<i>${esc(t("GLRAIL.skill.dcShort", { dc: c.dc }))}</i>` : ""}<span class="gph-call-go">${ICON.die}${esc(t("GLRAIL.call.roll"))}</span></button>
   <button type="button" class="gph-x" data-act="call-dismiss" aria-label="${esc(t("GLRAIL.call.dismiss"))}" title="${esc(t("GLRAIL.call.dismiss"))}">${ICON.close}</button>
+  <i class="gph-call-life" aria-hidden="true"></i>
 </div>`;
+};
 
 /* ── the GM's creature panel ──────────────────────────────────────
    AC leads, as on the player's vitals. Then the Hit Points the GM marks,
@@ -883,7 +921,7 @@ export const RAIL = (o, t) => {
     : VITALS(o.vitals, t) + STRIKES(o.strikes ?? { list: [] }, t) + DECK(o.deck, t) + (o.slim ? "" : UTIL(o.util, t));
   return `
 <div class="gph" data-role="${o.role}" data-mode="${o.mode ?? "exploration"}" data-map="${o.turnbar?.map ?? 0}"${o.slim ? " data-slim" : ""}${o.folded ? " data-folded" : ""}${o.readonly ? " data-readonly" : ""}${o.role !== "gm" && (o.plinth?.dead || o.plinth?.dying) ? ` data-down="${o.plinth.dead ? "dead" : "dying"}"` : ""}${o.overlay ? " data-overlay" : ""}>
-  ${o.stack?.length ? `<div class="gph-stack" role="group" aria-label="${esc(t("GLRAIL.party"))}">${o.stack.map((s) => SEAT(s, t)).join("")}${o.role === "gm" ? `<button type="button" class="gph-pcb" data-drawer="party" title="${esc(t("GLRAIL.call.openTitle"))}">${ICON.party}<span>${esc(t("GLRAIL.call.open"))}</span></button>` : ""}</div>` : ""}
+  ${o.stack?.length ? `<div class="gph-stack" role="group" aria-label="${esc(t("GLRAIL.party"))}">${o.stack.map((s) => SEAT(s, t)).join("")}${o.role === "gm" ? `<button type="button" class="gph-pcb${o.calling ? " is-live" : ""}" data-drawer="party" title="${esc(t("GLRAIL.call.openTitle"))}">${o.calling ? ICON.call : ICON.party}<span>${esc(o.calling ? o.calling.name : t("GLRAIL.call.open"))}</span>${o.calling ? `<em>${esc(t("GLRAIL.call.tally", { n: o.calling.n, of: o.calling.of }))}</em>` : ""}</button>` : ""}</div>` : ""}
   <div class="gph-rail">
     ${PLINTH({ ...o.plinth, folded: o.folded }, t, { readonly: o.readonly })}
     <div class="gph-body">${o.turnbar && o.role !== "gm" ? TURNBAR(o.turnbar, t) : ""}${o.call && o.role !== "gm" ? CALLBAR(o.call, t) : ""}${o.role === "gm" && o.creature ? STATBAR(o.creature, t) : ""}${body}</div>

@@ -344,20 +344,49 @@ canvas, as the stat block does.
 - **A number rolls that character's check in secret**: PF2e's own statistic
   roll with `messageMode: "gm"` and no event (an event would let a modifier key
   turn it public). The DC field, when filled, is handed to the roll.
-- **A name calls for the check.** The GM's client sends one message on the suite
-  socket to the connected players (`recipients`, filtered by the server; the
-  stream login holds GM rights and is never one). Each player's rail shows one
-  press beside the turn bar: the check named whole, their own modifier, and the
-  DC only when the GM ticked "show". Pressing it is the ordinary check. A call
-  ends when answered or put away, when the GM ends it, or after `CALL_LIFE`.
-  The grid lights the called row and marks who has rolled.
+- **A name calls for the check.** Each called player's rail shows the call over
+  the turn bar: an amber slab, the check named whole at display size, their own
+  modifier, the DC only when the GM ticked "show", and a paper Roll press. Its
+  foot drains by the time it has left. A call ends when answered or put away,
+  when the GM ends it, or after `CALL_LIFE`.
 
-A call is stored nowhere. Three rules keep it honest, and the check pins them:
+The bar over the grid composes the call as the sentence the GM would say, and the
+line under it says it back before anything is sent:
+
+- **To.** The column heads are the picker. Nobody picked is the whole party;
+  pressing heads picks those characters (`callTargets`).
+- **Roll.** How the roll is posted, in Foundry's own message modes
+  (`CALL_MODES`): **Open** (`public`, the table sees it), **Private** (`gm`,
+  the roller and the GM), **Blind** (`blind`, the GM alone sees the result).
+  The player's bar says which before they roll, and the press hands PF2e that
+  `messageMode`, for an open call too (left out, PF2e posts in the player's
+  own chat mode). PF2e's check dialog still offers its own mode select, and Ctrl
+  still turns any roll blind.
+- **DC**, and whether players see it.
+
+While a call stands, that line is the call: a seat per called character
+(waiting, rolled and the total, or away with nobody connected), the count, and
+the same drain. The total is printed after `diceSettled`; its tone is PF2e's
+outcome where the roll carried the DC, else `degreeOf` against the GM's own DC,
+which never left the screen. The stack's Party checks press turns amber and
+carries the tally while a call is out.
+
+A call is stored nowhere. Five rules keep it honest, and the check pins them:
 a call is honoured only when the **server-attested** sender is a GM
 (`meta.attested`; the payload's own claim is never read); `readCall` is total
-and keeps only the id, a check from `CALL_CHECKS`, a DC in range and the expiry;
-and a hidden DC never leaves the GM's client, because a DC handed to PF2e is
-printed on the card.
+and keeps only the id, a check from `CALL_CHECKS`, a mode from `CALL_MODES`,
+the called character ids, a DC in range and the expiry; a hidden DC never leaves
+the GM's client, because a DC handed to PF2e is printed on the card; a call for
+some of the party is **sent** to those players alone (`callRecipients`: the
+player a character is assigned to, else its connected owners; never a GM or the
+stream login), one message per player, so no other client hears that it was
+made; and each payload names only that player's own called characters.
+
+The arrival plays once (`fresh`, `.is-fresh`): the bar is drawn out from its
+left edge, the slab strikes paper and settles to amber, the horn rings, the check
+and its press land in turn. A redraw never replays it, and the grid's own
+changes (a pick, a mode, an answer) swap the drawer's body in place
+(`redrawParty`) so the drawer does not rise again under the GM's hand.
 
 ## The echo (`echo.mjs`)
 

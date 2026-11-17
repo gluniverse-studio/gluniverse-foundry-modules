@@ -941,12 +941,32 @@ section("the GM reads the party's checks, rolls one in secret and calls for one"
   ok(C.readCall(call, { fromGM: false, now: 0 }) === null && C.readCall({ ...call, sender: "gm", isGM: true }, { fromGM: false, now: 0 }) === null, "a call from anyone the server does not name a GM is nothing, whatever the payload says");
   ok(C.readCall({ type: "call", id: "x", check: "skill:nonsense" }, { fromGM: true }) === null && C.readCall({ type: "call", id: 5, check: "perception" }, { fromGM: true }) === null && C.readCall(null, { fromGM: true }) === null && C.readCall({ type: "call", id: "x", check: "perception", dc: "<b>" }, { fromGM: true, now: 0 }).dc === undefined, "the reader is total: a malformed call is nothing, a malformed DC is no DC");
   const got = C.readCall({ ...call, dc: 22, extra: "<img>" }, { fromGM: true, now: 5000 });
-  ok(Object.keys(got).sort().join() === "check,dc,id,until" && got.until === 5000 + C.CALL_LIFE, "a call keeps its id, its check, its DC and its hour, and nothing else of the payload");
+  ok(Object.keys(got).sort().join() === "check,dc,id,mode,until,who" && got.until === 5000 + C.CALL_LIFE && got.mode === "public" && got.who.length === 0, "a call keeps its id, its check, its DC, its mode, whom it is for and its hour, and nothing else of the payload");
   const who = party[0].actor;
   const cm = C.callModel(got, who, { name: checkNameOf, now: 6000 });
   ok(cm && cm.name === "Athletics" && cm.mod === 15 && cm.dc === 22 && C.callModel(got, who, { name: checkNameOf, now: got.until }) === null && C.callModel(got, {}, { name: checkNameOf, now: 6000 }) === null, "the rail draws a live call for a character who has the statistic, and none once it has run out");
   const bar = V.CALLBAR(cm, t);
   ok(/data-check="skill:athletics" data-answer="c1"/.test(bar) && /<b>Athletics<\/b><em>\+15<\/em><i>DC 22<\/i>/.test(bar) && /data-act="call-dismiss"/.test(bar) && !/DC/.test(V.CALLBAR({ ...cm, dc: undefined }, t)), "a call is one press: the check named whole, the character's modifier, the DC only where shown");
+  /* who, and how */
+  ok(C.CALL_MODES.join() === "public,gm,blind" && C.modeOf("self") === "public" && C.modeOf("blind") === "blind" && C.makeCall({ check: "will", mode: "<b>", id: "x", at: 0 }).mode === "public"
+    && C.readCall({ type: "call", id: "x", check: "will", mode: "selfroll" }, { fromGM: true }).mode === "public" && C.readCall({ type: "call", id: "x", check: "will", mode: "blind" }, { fromGM: true }).mode === "blind",
+    "a call is posted in one of Foundry's modes (open, the roller and the GM, the GM alone); anything else is the open roll");
+  ok(C.callTargets(party, []).join() === "valeros,ezren,kyra,merisiel" && C.callTargets(party, ["kyra", "nobody"]).join() === "kyra" && C.callTargets(party, ["nobody"]).length === 4, "nobody picked is the whole party; a pick is the picked characters of the party and no one else");
+  const U = (id, o = {}) => ({ id, active: true, isGM: false, character: null, owns: () => false, ...o });
+  const users = [U("gm", { isGM: true, owns: () => true }), U("stream", { isGM: true, owns: () => true }), U("pv", { character: "valeros", owns: (a) => a === "valeros" }), U("pk", { character: "kyra", owns: (a) => a === "kyra" || a === "ezren" }), U("pm", { active: false, character: "merisiel", owns: (a) => a === "merisiel" })];
+  const rc = C.callRecipients(["kyra"], users);
+  ok([...rc.to.keys()].join() === "pk" && rc.to.get("pk").join() === "kyra" && !rc.away.length, "a call for one character goes to that character's player and to nobody else");
+  const ra = C.callRecipients(["valeros", "ezren", "kyra", "merisiel"], users);
+  ok([...ra.to.keys()].sort().join() === "pk,pv" && ra.to.get("pk").join() === "ezren,kyra" && ra.to.get("pv").join() === "valeros" && ra.away.join() === "merisiel" && !ra.to.has("gm") && !ra.to.has("stream"),
+    "a party call names each player only their own characters, never reaches a GM or the stream login, and says who is away");
+  ok([...C.callRecipients(["kyra"], [U("a", { owns: () => true }), U("b", { owns: () => true }), U("pk", { character: "kyra", owns: () => true })]).to.keys()].join() === "pk", "where everybody owns everything, a character's call still goes to the player it is assigned to");
+  const mine = C.readCall(C.makeCall({ check: "skill:athletics", mode: "blind", who: ["kyra"], id: "c2", at: 0 }), { fromGM: true, now: 100 });
+  ok(C.callModel(mine, party[2].actor, { name: checkNameOf, now: 200 })?.mode === "blind" && C.callModel(mine, party[0].actor, { name: checkNameOf, now: 200 }) === null, "a call draws on the rail of a character it names, and on no other character's");
+  const cmLife = C.callModel(mine, party[2].actor, { name: checkNameOf, now: 100 + 30000 });
+  ok(cmLife.life === C.CALL_LIFE && cmLife.left === C.CALL_LIFE - 30000 && /--gph-call-life:120000ms;--gph-call-at:-30000ms/.test(V.CALLBAR(cmLife, t)), "the call drains by the time it has left, picked up where the clock is on a redraw");
+  const blindBar = V.CALLBAR(cmLife, t), openBar = V.CALLBAR({ ...cmLife, mode: "public" }, t);
+  ok(/data-mode="blind"/.test(blindBar) && /gph-call-m/.test(blindBar) && blindBar.includes(t("GLRAIL.call.told.blind")) && !/gph-call-m/.test(openBar) && V.CALLBAR({ ...cmLife, mode: "gm" }, t).includes(t("GLRAIL.call.told.gm")), "a private or blind call says who will see the roll, before it is rolled");
+  ok(/class="gph-call is-fresh"/.test(V.CALLBAR({ ...cmLife, fresh: true }, t)) && !/is-fresh/.test(blindBar), "the arrival plays for a fresh call and never on a redraw");
   ok(V.RAIL({ ...STATES.martial(art), call: cm }, t).includes('class="gph-call"') && !V.RAIL({ ...STATES.gm(art), call: cm }, t).includes('class="gph-call"') && !V.RAIL(STATES.martial(art), t).includes("gph-call"), "the call stands on a player's rail, never the GM's, and only while there is one");
   ok(V.RAIL(STATES.gm(art), t).includes('data-drawer="party"') && !V.RAIL(STATES.martial(art), t).includes('data-drawer="party"') && DRAWER_BODIES.party(V, t, art, STATES.martial(art)) === null, "the party's checks open from the GM's stack and from nowhere else");
   ok(C.readCall({ type: "end", id: "c1" }, { fromGM: true }).end === "c1" && C.readCall({ type: "end", id: "c1" }, { fromGM: false }) === null, "only a GM takes a call back");
@@ -956,16 +976,36 @@ section("the GM reads the party's checks, rolls one in secret and calls for one"
     && !C.answersCall(out, { actorId: "valeros", ctx: { type: "skill-check", domains: ["athletics"] }, at: 500 }) && !C.answersCall(out, { actorId: null, ctx: { type: "skill-check", domains: ["athletics"] }, at: 2000 })
     && C.answersCall({ check: "will", at: 0 }, { actorId: "a", ctx: { type: "saving-throw", domains: ["will"] }, at: 1 }) && C.answersCall({ check: "perception", at: 0 }, { actorId: "a", ctx: { type: "perception-check", domains: ["perception"] }, at: 1 }),
     "an answer is the called check, by a character, after the call");
-  const lit = V.PARTYCHECKS(p, t, { dc: "20", showDc: true, call: { check: "skill:athletics", name: "Athletics", answered: ["valeros"] } });
-  ok(/class="is-called"/.test(lit) && /gph-pc-cell is-best is-in" data-pcheck="skill:athletics" data-actor="valeros"/.test(lit) && (lit.match(/ is-in"/g) ?? []).length === 1 && /data-act="call-end"/.test(lit) && /1 of 4 rolled/.test(lit), "a standing call lights its row, marks who has rolled and can be ended");
+  ok(!C.answersCall({ ...out, targets: ["kyra"] }, { actorId: "valeros", ctx: { type: "skill-check", domains: ["athletics"] }, at: 2000 }) && C.answersCall({ ...out, targets: ["kyra"] }, { actorId: "kyra", ctx: { type: "skill-check", domains: ["athletics"] }, at: 2000 }), "only a called character answers a call");
+  const members = party.map((m) => ({ id: m.actor.id, name: m.actor.name, img: m.actor.img }));
+  const om = C.outModel({ check: "skill:athletics", mode: "gm", until: 9000, targets: ["valeros", "kyra", "merisiel"], away: ["merisiel"], answered: new Map([["valeros", { total: 31, degree: 3 }]]) }, members, { name: checkNameOf, now: 1000 });
+  ok(om.n === 1 && om.of === 3 && om.left === 8000 && om.targets.map((x) => x.state).join() === "in,wait,away" && om.targets[0].total === 31 && om.targets[0].degree === 3 && om.mode === "gm", "the call that is out: a seat per called character, rolled (and what), waiting, or away");
+  const lit = V.PARTYCHECKS(p, t, { dc: "20", showDc: true, mode: "gm", who: ["valeros", "kyra", "merisiel"], call: om });
+  ok(/class="is-called"/.test(lit) && /gph-pc-cell is-best is-in" data-pcheck="skill:athletics" data-actor="valeros"/.test(lit) && (lit.match(/ is-in"/g) ?? []).length === 1 && (lit.match(/ is-asked"/g) ?? []).length === 1 && /data-act="call-end"/.test(lit) && /1 of 3 rolled/.test(lit)
+    && (lit.match(/class="gph-pc-chip"/g) ?? []).length === 3 && /data-state="in" data-degree="3"[^>]*>.*?<em>31<\/em>/.test(lit) && /data-state="away"/.test(lit), "a standing call lights its row, seats who was called, marks who has rolled and what, and can be ended");
+  /* the composer */
+  const comp = V.PARTYCHECKS(p, t, { mode: "blind", who: ["kyra"] });
+  ok(C.CALL_MODES.every((m) => new RegExp(`data-call-mode="${m}" aria-checked="${m === "blind"}"`).test(comp)) && p.members.every((m) => new RegExp(`data-call-who="${m.id}" aria-pressed="${m.id === "kyra"}"`).test(comp))
+    && /data-act="call-all"/.test(comp) && !/data-all/.test(comp) && comp.includes(t("GLRAIL.call.say.blind", { who: "Kyra" })), "the composer picks who is called and how it is rolled, and says the call back before it is sent");
+  ok(/data-all/.test(html) && !/data-act="call-all"/.test(html) && !/aria-pressed="true"/.test(html) && html.includes(t("GLRAIL.call.say.public", { who: t("GLRAIL.call.everyone") })) && /data-all/.test(V.PARTYCHECKS(p, t, { who: p.members.map((m) => m.id) })), "nobody picked, or everybody, is the whole party");
+  for (const m of C.CALL_MODES) for (const k of ["mode", "modeTitle", "say", "rollTitle"]) ok(lang[`GLRAIL.call.${k}.${m}`], `lang: GLRAIL.call.${k}.${m}`);
+  for (const k of ["told.gm", "told.blind", "state.wait", "state.in", "state.away"]) ok(lang[`GLRAIL.call.${k}`], `lang: GLRAIL.call.${k}`);
+  ok(V.RAIL({ ...STATES.gm(art), calling: { name: "Athletics", n: 2, of: 4 } }, t).includes('class="gph-pcb is-live"') && !V.RAIL(STATES.gm(art), t).includes("is-live"), "the stack's press says a call is out, and how many have rolled");
   /* the host */
   const h = src["host.mjs"];
   ok(/onCall\(payload, attested\) \{\s*if \(game\.user\.isGM \|\| this\.stream\) return;\s*const call = readCall\(payload, \{ fromGM: !!\(attested && game\.users\.get\(attested\)\?\.isGM\)/.test(h) && /onSocket\(FEATURE_ID, \(payload, _claimed, meta\) => this\.onCall\(payload, meta\?\.attested \?\? null\)\)/.test(h), "the host honours a call only from the server-attested sender, and never on the stream login");
-  ok(/sendCall\(check\) \{\s*if \(!game\.user\.isGM\) return;\s*const users = game\.users\.filter\(\(u\) => u\.active && !u\.isGM\)/.test(h), "a call goes to the connected players alone (the stream login holds GM rights)");
+  const send = h.slice(h.indexOf("  sendCall(check) {"), h.indexOf("  endCall("));
+  ok(/sendCall\(check\) \{\s*if \(!game\.user\.isGM\) return;/.test(send) && /callRecipients\(targets, users\)/.test(send) && /callTargets\(this\.partyOf\(null, null\), this\.calls\.who\)/.test(send)
+    && /for \(const \[user, call\] of payloads\) emitSocket\(FEATURE_ID, call, \{ recipients: \[user\] \}\);/.test(send) && !/recipients: users/.test(send), "a call is sent player by player, to the called characters' players alone (callRecipients; the stream login holds GM rights)");
+  ok(/emitSocket\(FEATURE_ID, \{ type: "end", id: out\.id \}, \{ recipients: out\.users \}\)/.test(h), "a call is taken back from the players it went to, and no others");
+  ok(/async check\(key, event, dc = null, mode = null\)/.test(h) && /CALL_MODES\.includes\(mode\) \? \{ messageMode: mode \} : \{\}/.test(h) && /this\.check\(d\.check, e, c\?\.dc \?\? null, c\?\.mode \?\? null\)/.test(h), "a called check is rolled in the mode the GM chose, an open one included (never the player's own chat mode)");
+  const ans = h.slice(h.indexOf("  onAnswer(message) {"), h.indexOf("  /** The GM rolls a character's check for them"));
+  ok(/diceSettled\(message\)\.then\(/.test(ans) && ans.indexOf("total, ...(degree") > ans.indexOf("diceSettled(message)") && !/total/.test(ans.slice(0, ans.indexOf("this.redrawParty();"))), "the GM's grid marks who rolled at once, and prints what they rolled only after the dice have landed");
   ok(/secretCheck\(check, actorId\) \{\s*if \(!game\.user\.isGM\) return;[\s\S]{0,200}roll\(\{ messageMode: "gm"/.test(h) && !/secretCheck[\s\S]{0,300}roll\(\{[^}]*event/.test(h), "a secret check is PF2e's GM-only message, with no event to turn it public");
   ok(/if \(kind === "party"\) \{\s*if \(!game\.user\.isGM\) return null;/.test(h), "the party drawer is the GM's");
   ok(!/setFlag|settings\.set\([^)]*call/i.test(src["calls.mjs"]) && !/\b(game|canvas|foundry|ui|Hooks|document|window)\b\./.test(src["calls.mjs"].replace(/\/\*[\s\S]*?\*\//g, "")), "calls.mjs is pure, and a call is stored nowhere");
-  ok(/@container gph \(max-width: \d+px\) \{ \.gph-call,/.test(css) && /\.gph-pc-cell \{[^}]*height: 22px; min-height: 22px; max-height: 22px/.test(css) && /\.gph-pcb \{[^}]*height: 24px; min-height: 24px; max-height: 24px/.test(css) && /\.gph-call-roll \{[^}]*height: 34px; min-height: 34px/.test(css), "every new press states its own size, and the call steps over a narrow deck's checks");
+  ok(/@container gph \(max-width: \d+px\) \{ \.gph-call,/.test(css) && /\.gph-pc-cell \{[^}]*height: 22px; min-height: 22px; max-height: 22px/.test(css) && /\.gph-pcb \{[^}]*height: 28px; min-height: 28px; max-height: 28px/.test(css) && /\.gph-call-roll \{[^}]*height: 48px; min-height: 48px/.test(css) && /\.gph-pc-who \{[^}]*height: 34px; min-height: 34px; max-height: 34px/.test(css) && /\.gph-pc-mode \{[^}]*height: 26px; min-height: 26px; max-height: 26px/.test(css)
+    && /\.gph-call-life \{[^}]*animation: gph-call-drain var\(--gph-call-life, 120000ms\) linear var\(--gph-call-at, 0ms\) both/.test(css) && /@keyframes gph-call-drain \{ from \{ transform: scaleX\(1\); \} to \{ transform: scaleX\(0\); \} \}/.test(css), "every new press states its own size, and the call steps over a narrow deck's checks");
 });
 
 section("the GM reads a creature's passives without opening anything", () => {

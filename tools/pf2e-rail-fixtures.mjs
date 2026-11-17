@@ -13,7 +13,7 @@
  * which the host turns into `deck.skills` and the finder through
  * scripts/features/pf2e-rail/skill-actions.mjs, exactly as Foundry will.
  */
-import { partyChecks } from "../scripts/features/pf2e-rail/calls.mjs";
+import { CALL_LIFE, outModel, partyChecks } from "../scripts/features/pf2e-rail/calls.mjs";
 
 const party = (art, skip) => [
   { id: "kyra", name: "Kyra", img: art("iconics/Kyra.webp"), hp: [61, 61], ac: 22, hero: [1, 3] },
@@ -477,9 +477,18 @@ export const PARTY_ACTORS = (art) => [
   pc("merisiel", "Merisiel", art("iconics/MerisielFull.webp"), [12, 2], [[9, 1], [15, 3], [10, 1]], { _: 2, acrobatics: [14, 2], athletics: [9, 1], deception: [11, 1], diplomacy: [9, 1], society: [8, 1], stealth: [15, 3], thievery: [15, 3] }),
 ].map((actor) => ({ actor }));
 
+/* A call that is out, forty seconds in: two have rolled (one total in, one
+   critical), one is waiting, one has nobody connected. */
+export const CALLED = (art, o = {}) => {
+  const members = PARTY_ACTORS(art).map((m) => ({ id: m.actor.id, name: m.actor.name, img: m.actor.img }));
+  const targets = o.who?.length ? o.who : members.map((m) => m.id);
+  const answered = new Map([["valeros", { total: 31, degree: 3 }], ["kyra", { total: 17, degree: 1 }]].filter(([id]) => targets.includes(id)));
+  return { ...outModel({ check: "skill:athletics", mode: o.mode ?? "public", until: CALL_LIFE - 40000, targets, away: ["merisiel"], answered }, members, { name: checkNameOf, now: 0 }), fresh: !!o.fresh };
+};
+
 export const DRAWER_BODIES = {
   party: (V, t, art, model, o = {}) => (model.role === "gm" ? { title: t("GLRAIL.call.open"), wide: true, body: V.PARTYCHECKS(partyChecks(PARTY_ACTORS(art), { name: checkNameOf }), t,
-    o.called ? { dc: "20", showDc: true, call: { check: "skill:athletics", name: "Athletics", answered: ["valeros", "kyra"] } } : {}) } : null),
+    { mode: o.mode ?? "public", who: o.who ?? [], ...(o.called ? { dc: "20", showDc: true, call: CALLED(art, o) } : {}) }) } : null),
   inventory: (V, t, art) => ({ title: t("GLRAIL.drawer.inventory"), note: "4 Bulk of 9", body: V.DLIST({ rows: [
     { head: "Consumables" }, { key: "i:elixir", act: true, name: "Minor Elixir of Life", icon: art("equipment/consumables/elixirs/elixir-of-life.webp"), n: "×2", meta: "Use" },
     { key: "i:potion", act: true, name: "Lesser Healing Potion", n: "×1", meta: "Use" },

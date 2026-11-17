@@ -35,7 +35,9 @@
  *   &moment=home|call|hero|burn|exhale|gmturn   play that moment once,
  *          through the shipped moments.mjs (hero streaks to an echoed press)
  *   &echo=<selector>,<total>,<degree 0-3>   a roll echo on that press
- *   &drawer=inventory|effects|rest|macros|ranks
+ *   &drawer=inventory|effects|rest|macros|ranks|party (the GM's; &called=1 a call out,
+ *          &who=kyra,ezren the characters picked, &mode=public|gm|blind)
+ *   &call=1|dc &callmode=gm|blind   a call on a player's rail (dc: the DC shown)
  *   &folded=1  &readonly=1  &bright=1 (a parchment map)
  *   &still=1   no animation, for screenshots
  *   &bench=1   time a full render against the live setters
@@ -178,6 +180,10 @@ try {
     if (!model.sk) return null;
     return { ...K.finderModel({ ...model.sk, query, sel: fs.sel, mode: model.mode, map: mapNow(), t }) };
   }
+  /* the party's checks: the GM's pick and mode, and whether a call is out;
+     on a player's rail, the call that came in (&call=1|dc &callmode=gm|blind) */
+  const pc = { called: q.get('called') === '1', who: (q.get('who') ?? '').split(',').filter(Boolean), mode: q.get('mode') ?? 'public', fresh: q.get('still') !== '1',
+    call: q.get('call'), callMode: q.get('callmode') ?? 'public', callFresh: q.get('still') !== '1' };
   function compose() {
     const o = { ...model, util: { ...(model.util ?? {}), open: open.drawer } };
     if (o.deck && model.sk) {
@@ -185,8 +191,10 @@ try {
       o.deck = { ...o.deck, skills: { ...o.deck.skills, target: all.target, checks: K.checksOf(all), suggested: K.suggested(all, { mode: model.mode }) } };
     }
     if (fs.open && model.sk) o.overlay = V.FINDER(finder(), t);
-    else if (open.drawer && DRAWER_BODIES[open.drawer]) { const d = DRAWER_BODIES[open.drawer](V, t, art, model, { called: q.get('called') === '1' }); if (d) o.overlay = V.DRAWER(d); }
-    if (q.get('call') && model.role !== 'gm') o.call = { id: 'c1', check: 'skill:athletics', name: 'Athletics', mod: 15, ...(q.get('call') === 'dc' ? { dc: 20 } : {}) };
+    else if (open.drawer && DRAWER_BODIES[open.drawer]) { const d = DRAWER_BODIES[open.drawer](V, t, art, model, { called: pc.called, who: pc.who, mode: pc.mode, fresh: pc.fresh }); if (d) o.overlay = V.DRAWER(d); }
+    if (pc.call && model.role !== 'gm') { o.call = { id: 'c1', check: 'skill:athletics', name: 'Athletics', mod: 15, mode: pc.callMode, life: 120000, left: 85000, fresh: pc.callFresh, ...(pc.call === 'dc' ? { dc: 20 } : {}) }; pc.callFresh = false; }
+    if (pc.called && model.role === 'gm') o.calling = { name: 'Athletics', n: 2, of: 4 };
+    pc.fresh = false;
     return o;
   }
   const light = new RailLight();
@@ -380,6 +388,14 @@ try {
     if (d.act === 'fold') { model = { ...model, folded: !model.folded }; render(); return; }
     if (d.act === 'close') { if (fs.open) closeFinder(); else { open.drawer = null; render(); } return; }
     if (d.act === 'hp') { editHp(b); return; }
+    if (d.act === 'call-all') { pc.who = []; render(); return; }
+    if (d.callWho) { pc.who = pc.who.includes(d.callWho) ? pc.who.filter((x) => x !== d.callWho) : [...pc.who, d.callWho]; render(); return; }
+    if (d.callMode) { pc.mode = d.callMode; render(); return; }
+    if (d.call) { pc.called = true; pc.fresh = true; render(); toast('emitSocket(call ' + d.call + ', ' + pc.mode + ') to ' + (pc.who.length ? pc.who.join(', ') : 'everyone')); return; }
+    if (d.act === 'call-end') { pc.called = false; render(); return; }
+    if (d.act === 'call-dismiss') { pc.call = null; render(); return; }
+    if (d.answer) { pc.call = null; render(); toast('statistic.roll({ messageMode: "' + pc.callMode + '" })'); return; }
+    if (d.pcheck) { toast('statistic.roll({ messageMode: "gm" }) for ' + d.actor); return; }
     if (d.act === 'frame') { const p = host.querySelector('[data-plinth]'); D.framePlinth(p, model.plinth.frame, { onCommit: (f) => { model.plinth.frame = f; toast('ph.frame ← ' + JSON.stringify(f)); } }); return; }
     if (d.hero) { const n = +d.hero, m = clone(model); m.plinth.hero[0] = m.plinth.hero[0] === n ? n - 1 : n; update(m); return; }
     if (d.pip != null) { const m = clone(model), e2 = m.turnbar.economy; if (d.pip === 'r') e2.reaction = !e2.reaction; else { const i = +d.pip, left = e2.max - e2.spent; e2.spent = e2.max - (i < left ? i : i + 1); } update(m); return; }
