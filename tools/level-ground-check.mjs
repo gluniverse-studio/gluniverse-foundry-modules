@@ -358,6 +358,42 @@ for (const [id, src] of Object.entries(structured)) {
   }
 }
 
+// Boss Creatures owns the text of the items it grants and already writes it from
+// a Boss DC that follows the Strip record, so Strip must leave those items alone.
+{
+  const SUITE = "gluniverse-foundry-modules";
+  const bossText = "<p>Each creature in the area attempts a DC 29 basic Reflex save.</p>";
+  const own = "<p>Strike. On a hit, the target attempts a DC 29 Fortitude save.</p>";
+  const src = withIds(structured.A4 ?? Object.values(structured)[0]);
+  src.type = "npc";
+  src.system.details.level.value = 8;
+  src.items = [
+    { _id: "boss1", type: "action", name: "Shrug It Off", flags: { [SUITE]: { "vr.bossItem": { id: "shrug", core: true } } }, system: { description: { value: bossText } } },
+    { _id: "boss2", type: "action", name: "Downfall", flags: { [SUITE]: { vr: { bossItem: { id: "d1", downfall: true } } } }, system: { description: { value: bossText } } },
+    { _id: "own1", type: "action", name: "Rend", system: { description: { value: own } } },
+  ];
+  const plan = logic.stripPlan(clone(src), 8);
+  const touched = new Set((plan?.items ?? []).map((u) => u._id));
+  ok("Strip leaves Boss Creatures' items alone", !touched.has("boss1") && !touched.has("boss2"), [...touched].join(", "));
+  ok("Strip still strips the creature's own abilities", (plan?.items ?? []).some((u) => u._id === "own1" && /DC 21 /.test(u["system.description.value"] ?? "")));
+  ok("Strip records no boss item", !(plan?.printed.items ?? []).some(([id]) => id.startsWith("boss")));
+}
+
+// The flag shapes Boss Creatures refreshes its ability text on.
+{
+  const S = "gluniverse-foundry-modules";
+  const yes = [
+    { flags: { [S]: { lvg: { strip: { level: 8 } } } } },
+    { flags: { [S]: { "lvg.strip": { level: 8 } } } },
+    { flags: { [S]: { lvg: { "-=strip": null } } } },
+    { flags: { [S]: { "-=lvg.strip": null } } },
+    { flags: { [S]: { "-=lvg": null } } },
+  ];
+  const no = [{}, { flags: { [S]: { lvg: { role: { role: "solo" } } } } }, { flags: { [S]: { "vr.boss": {} } } }, { system: { details: { level: { value: 3 } } } }];
+  ok("stripChanged sees every shape of the Strip record", yes.every((c) => constants.stripChanged(c)));
+  ok("stripChanged ignores other flags", no.every((c) => !constants.stripChanged(c)));
+}
+
 const docIds = Object.keys(rows).length + Object.keys(structured).length;
 ok("vector coverage", Object.keys(rows).every((id) => seen.has(id)), `unchecked: ${Object.keys(rows).filter((id) => !seen.has(id)).join(", ")}`);
 const vectorCount = seen.size;
@@ -838,7 +874,7 @@ const langKeys = new Set(Object.keys(lang));
   for (const f of PURE) {
     const src = read(`${FEATURE}/${f}`).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
     ok(`${f} is pure`, !/\b(game|canvas|foundry|ui|Hooks|CONFIG|document|window|fromUuid|fromUuidSync)\b\s*[.?([]/.test(src), "reaches the world");
-    ok(`${f} imports only pure modules`, [...src.matchAll(/from\s+"([^"]+)"/g)].every((m) => /^\.\/(rules|logic|constants|reference)\.mjs$|^\.\.\/\.\.\/core\/util\.mjs$/.test(m[1])));
+    ok(`${f} imports only pure modules`, [...src.matchAll(/from\s+"([^"]+)"/g)].every((m) => /^\.\/(rules|logic|constants|reference)\.mjs$|^\.\.\/\.\.\/core\/util\.mjs$|^\.\.\/pf2e-variant-rules\/boss\/constants\.mjs$/.test(m[1])));
   }
   const all = readdirSync(join(ROOT, FEATURE)).map((f) => [f, read(`${FEATURE}/${f}`)]);
   for (const [f, src] of all) {

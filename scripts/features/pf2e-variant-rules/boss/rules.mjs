@@ -150,6 +150,16 @@ export function bossDc(baseLevel, { flatten = 0 } = {}) {
   return Math.max(1, raw + offset);
 }
 
+/**
+ * The offset Level Ground's Strip applied, from its `lvg.strip` record
+ * (`{ level, ... }`): minus the level it took off every DC, never positive.
+ * Strip subtracts `max(level, 0)`, so a level −1 creature loses nothing.
+ */
+export function strippedOffset(record) {
+  const level = Math.trunc(Number(record?.level));
+  return record && Number.isFinite(level) && level > 0 ? -level : 0;
+}
+
 /** "the boss modifier is equal to its Boss DC – 10". */
 export function bossModifier(baseLevel, options = {}) {
   return bossDc(baseLevel, options) - 10;

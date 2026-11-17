@@ -11,7 +11,8 @@ import { SUITE_ID, warn } from "../../../core/const.mjs";
 import { escapeHTML } from "../../../core/util.mjs";
 import { BOSS_FLAGS } from "./constants.mjs";
 import { ABILITIES, CORE_ACTIONS, abilityById } from "./data.mjs";
-import { bossHp, bossLevel, bossDc, bossModifier, resolveScale, tierOf, MAX_ABILITIES } from "./rules.mjs";
+import { bossHp, bossLevel, bossDc, bossModifier, resolveScale, strippedOffset, tierOf, MAX_ABILITIES } from "./rules.mjs";
+import { FLAGS as LVG_FLAGS, readFlag as readLvgFlag } from "../../level-ground/constants.mjs";
 import { storedProfile, setProfile, clearProfile, updateProfile } from "./profile.mjs";
 
 const L = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -32,15 +33,24 @@ export function sourceMaxHp(actor) {
 
 /**
  * The Proficiency-without-Level offset this actor carries, as a non-positive
- * number, or 0 when the world is not running PWoL.
+ * number, or 0 when nothing has taken its level off.
  *
- * Read off the actor's own custom modifiers rather than imported from
- * `pf2e-flatten`, because the Boss rule has to behave the same whether that
- * feature, some other PWoL module, or a hand-added modifier is doing the
- * flattening. The label is the one pf2e-flatten writes; `system.customModifiers`
- * is plain PF2e data, not a private API.
+ * Two roads take a creature's level off, and the Boss DC has to follow both.
+ * pf2e-flatten (or another PWoL module, or a hand-added modifier) leaves the
+ * stat block alone and adds a custom modifier, read off the actor's own custom
+ * modifiers rather than imported, so the rule behaves the same whichever is
+ * doing it; the label is the one pf2e-flatten writes, and
+ * `system.customModifiers` is plain PF2e data. Level Ground's Strip instead
+ * rewrites the stored numbers and adds no modifier at all, so it is read from
+ * its `lvg.strip` record (the level it took off), whether or not that feature
+ * is still switched on: the numbers stay Stripped until Unstrip. Missing that
+ * leaves every save against a Stripped boss about a level too hard.
  */
 export function flattenOffset(actor) {
+  return modifierOffset(actor) + strippedOffset(readLvgFlag(actor?.flags, LVG_FLAGS.strip));
+}
+
+function modifierOffset(actor) {
   try {
     const all = actor?.system?.customModifiers?.all ?? [];
     for (const modifier of all) {
@@ -157,7 +167,7 @@ async function writeHp(actor, nextMax) {
 /* ── Abilities ───────────────────────────────────────────────────────────── */
 
 /** Flag written on every item this feature creates, so it can find them again. */
-const OWNED = "vr.bossItem";
+const OWNED = BOSS_FLAGS.item;
 
 /** The items on this actor that we created. */
 export function grantedItems(actor) {

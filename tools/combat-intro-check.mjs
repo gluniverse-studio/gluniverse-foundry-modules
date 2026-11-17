@@ -75,6 +75,43 @@ const dirty = SM.normalizeState({ id: "seq1", combatId: "cb1", phase: "rolling",
 const leaks = (o) => JSON.stringify(o).match(/"(total|natural|degree|secret)"/g);
 if (leaks(dirty)) fail(`secrecy: normalizeState lets ${leaks(dirty).join(", ")} through`);
 if (dirty.slots[0].mods.length) fail("secrecy: normalizeState keeps an NPC's modifiers");
+
+/*
+ * Level Ground's threat is its Sizing Up: the party is told the word, never the
+ * band, the percentage or the XP. The intro is on every player's screen, so the
+ * threat it stores is the word and a severity read from the word. Trivial and
+ * Low are both "weaker", and must look the same.
+ */
+{
+  const LG = await imp("scripts/features/level-ground/logic.mjs");
+  const pcs = [8, 8, 8, 8].map((level, i) => ({ name: `PC${i}`, level, maxHP: 120 }));
+  const party = { pcs, allies: [], area: true, casterLeads: false };
+  const bands = new Map();
+  for (let level = -1; level <= 24; level++) for (const count of [1, 2, 4, 8]) {
+    const r = LG.reading([{ count, level, role: "standard" }], party);
+    if (!r) continue;
+    const th = SM.threatFromLevelGround(r);
+    if (!th || th.word !== r.wordKey || !C.SEVERITIES.includes(th.severity)) { fail(`threat: Level Ground ${r.label} gives ${JSON.stringify(th)}`); continue; }
+    if (th.xp || th.budget) fail("threat: a Level Ground threat carries XP — the party is told the word only");
+    const leak = Object.keys(th).filter((k) => !["severity", "word", "xp", "budget"].includes(k));
+    if (leak.length) fail(`threat: a Level Ground threat carries ${leak.join(", ")}`);
+    bands.set(r.band, th);
+  }
+  if (bands.get("trivial") && bands.get("low") && bands.get("trivial").severity !== bands.get("low").severity) fail("threat: Trivial and Low are both \"weaker\" but are drawn apart, which tells the table the band");
+  if (bands.size < 5) fail(`threat: the Level Ground sweep reached only ${[...bands.keys()].join(", ")}`);
+  for (const w of LG.WORD_KEYS) if (!Object.hasOwn(C.THREAT_WORDS, w)) fail(`threat: Level Ground word ${w} has no severity`);
+  if (SM.threatFromLevelGround(null) !== null) fail("threat: no reading must be no threat");
+  const mainSrc = read(`${FEAT}/main.mjs`);
+  const build = mainSrc.slice(mainSrc.indexOf("async function buildIntro"), mainSrc.indexOf("// Friendly creatures stand"));
+  if (!/Suite\.enabled\("level-ground"\)/.test(build)) fail("threat: the intro has no threat in a Level Ground world without Flatfinder");
+  if (!/threatFromLevelGround\(/.test(build)) fail("threat: the intro must store Level Ground's threat through threatFromLevelGround, or the band reaches every player");
+  if (!/!r\.hidden && !\(c && visibilityOf\(c\)\.hidden\)/.test(build) || !/rows\.filter\(seen\)/.test(build)) fail("threat: the intro rates combatants the roster hides (Foundry's hidden or the rail's), which the party cannot see");
+  const kept = SM.normalizeState({ id: "s", combatId: "c", phase: "intro", intro: { threat: { severity: "low", word: "weaker", pct: 55, band: "low" } } });
+  if (kept.intro.threat.word !== "weaker") fail("threat: normalizeState drops the Sizing Up word");
+  if ("pct" in kept.intro.threat || "band" in kept.intro.threat) fail("threat: normalizeState keeps a field off the allow-list");
+  const bogus = SM.normalizeState({ id: "s", combatId: "c", phase: "intro", intro: { threat: { severity: "low", word: "<b>x</b>" } } });
+  if ("word" in bogus.intro.threat) fail("threat: normalizeState keeps a word that is not one of Level Ground's");
+}
 const player = { id: "u2", isGM: false }, gm = { id: "g", isGM: true };
 if (SM.entitled(player, npc)) fail("secrecy: a player is entitled to an NPC's total before the sort");
 if (!SM.entitled(gm, npc) || !SM.entitled(player, pc)) fail("secrecy: the GM must see every total, and the table every PC's");
@@ -263,6 +300,7 @@ for (const f of ["main.mjs", "index.mjs", "overlay.mjs", "director.mjs", "pf2e-i
 const OV = (await imp(`${FEAT}/overlay.mjs`)).default;
 for (const [prefix, list] of Object.entries(OV.I18N_DYNAMIC)) for (const k of list) want.add(`${prefix}.${k}`);
 for (const s of C.SEVERITIES) want.add(`GLCI.threat.${s}`);
+for (const w of Object.keys(C.THREAT_WORDS)) want.add(`GLCI.threat.word.${w}`);
 for (const skin of C.SKINS) for (const line of C.INTRO_LINES[skin]) want.add(`GLCI.intro.${skin}.${line}`);
 for (const cue of C.CUES) { want.add(`GLCI.settings.sound.${cue}.name`); want.add(`GLCI.settings.sound.${cue}.hint`); want.add(`GLCI.cue.${cue}`); }
 want.add("GLUNI.Unknown");

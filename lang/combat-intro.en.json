@@ -102,7 +102,15 @@
       "moderate": "Moderate",
       "severe": "Severe",
       "extreme": "Extreme",
-      "xp": "{xp} / {budget} XP"
+      "xp": "{xp} / {budget} XP",
+      "word": {
+        "noThreat": "No threat",
+        "weaker": "Weaker",
+        "realFight": "A real fight",
+        "dangerous": "Dangerous",
+        "coinToss": "A coin toss",
+        "overwhelming": "Overwhelming"
+      }
     },
     "stat": {
       "more": "More",
