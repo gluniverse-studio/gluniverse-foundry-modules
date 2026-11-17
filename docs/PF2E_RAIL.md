@@ -359,7 +359,8 @@ line under it says it back before anything is sent:
   (`CALL_MODES`): **Open** (`public`, the table sees it), **Private** (`gm`,
   the roller and the GM), **Blind** (`blind`, the GM alone sees the result).
   The player's bar says which before they roll, and the press hands PF2e that
-  `messageMode`. PF2e's check dialog still offers its own mode select, and Ctrl
+  `messageMode`, for an open call too (left out, PF2e posts in the player's
+  own chat mode). PF2e's check dialog still offers its own mode select, and Ctrl
   still turns any roll blind.
 - **DC**, and whether players see it.
 

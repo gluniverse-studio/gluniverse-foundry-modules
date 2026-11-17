@@ -829,11 +829,13 @@ export class RailHost {
   }
 
   /** `dc` is a called check's, where the GM showed it; `mode` is how the
-   *  GM asked for it to be posted (a private or blind call). PF2e reads the
-   *  event only for its own keys: Ctrl still turns any roll blind. */
+   *  GM asked for a called check to be posted. An open call says so too:
+   *  left out, PF2e posts in the player's own chat mode, which may be
+   *  private. PF2e reads the event only for its own keys: Ctrl still turns
+   *  any roll blind. */
   async check(key, event, dc = null, mode = null) {
     return statisticOf(this.subj?.actor, key)?.roll({ event, ...(dc != null ? { dc: { value: dc, visible: true } } : {}),
-      ...(CALL_MODES.includes(mode) && mode !== "public" ? { messageMode: mode } : {}) });
+      ...(CALL_MODES.includes(mode) ? { messageMode: mode } : {}) });
   }
 
   /* ── a check the GM calls for (calls.mjs) ───────────────────── */
@@ -880,7 +882,8 @@ export class RailHost {
     if (!payloads.length) return ui.notifications?.info?.(t(targets.length && this.calls.who.length ? "GLRAIL.call.nobodyFor" : "GLRAIL.call.nobody"));
     this.endCall({ quiet: true });
     for (const [user, call] of payloads) emitSocket(FEATURE_ID, call, { recipients: [user] });
-    this.calls.out = { id, check, at, mode, until: at + CALL_LIFE, targets, away, users: [...to.keys()], answered: new Map() };
+    /* the DC is kept as it stood when the call went out: every answer is read against the same number */
+    this.calls.out = { id, check, at, mode, dc: dcOf(this.calls.dc), until: at + CALL_LIFE, targets, away, users: [...to.keys()], answered: new Map() };
     this.calls.timer = setTimeout(() => { this.calls.out = null; this.redrawParty(); }, CALL_LIFE);
     this.redrawParty();
   }
@@ -925,9 +928,9 @@ export class RailHost {
     if (!Number.isFinite(total)) return;
     diceSettled(message).then(() => {
       if (this.calls.out !== out) return;
-      /* PF2e's own outcome where the roll carried the DC; else the GM's DC,
+      /* PF2e's own outcome where the roll carried the DC; else the call's DC,
          which never left this screen, by PF2e's rule (core/pf2e-degree). */
-      const dc = dcOf(this.calls.dc), known = DEGREE_KEYS.indexOf(ctx?.outcome);
+      const dc = out.dc, known = DEGREE_KEYS.indexOf(ctx?.outcome);
       const natural = roll.dice?.[0]?.faces === 20 ? Number(roll.dice[0].total) : null;
       const degree = known >= 0 ? known : degreeOf(total, dc, natural) ?? -1;
       out.answered.set(actorId, { seen: Date.now(), total, ...(degree >= 0 ? { degree } : {}) });
