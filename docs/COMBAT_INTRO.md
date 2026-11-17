@@ -4,6 +4,10 @@ A cinematic, full-screen start to a PF2e encounter. The GM presses **Cinematic
 start** in the initiative rail's header; every client plays the same sequence:
 
 1. **intro** (timed) — party versus hostiles, the encounter title, the threat.
+   The threat is Flatfinder's rating when Flatfinder is on, else Level Ground's
+   Sizing Up (`threatFromLevelGround`): the word alone, read from what the party
+   can see, with a severity drawn from the word, because the intro is on every
+   player's screen and Level Ground tells the party nothing more.
 2. **rolling** (waits for people) — each PC's card with the owner's own Dice So
    Nice die, a statistic picker and modifier chips; NPCs answer in one GM
    volley, grouped by kind and side, their totals sealed. A boss is never

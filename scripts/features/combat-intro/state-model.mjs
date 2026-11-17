@@ -10,7 +10,7 @@
  *
  * Pure: no `game`, no DOM. tools/combat-intro-check.mjs drives every rule here.
  */
-import { PHASES, KINDS, OPS, SEVERITIES, SIDES, BOSS_TIERS } from "./constants.mjs";
+import { PHASES, KINDS, OPS, SEVERITIES, SIDES, BOSS_TIERS, THREAT_WORDS } from "./constants.mjs";
 
 const str = (v, max = 200) => (typeof v === "string" ? v.slice(0, max) : "");
 const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -125,6 +125,18 @@ function normalizeSlot(s) {
 }
 
 /**
+ * The intro's threat from a Level Ground reading (logic.mjs `reading`): the
+ * Sizing Up word and the severity it is drawn at, and nothing else. The band,
+ * the percentage and the XP stay on the GM's client; the intro is on every
+ * player's screen. Null when there is no reading.
+ */
+export function threatFromLevelGround(reading) {
+  const word = reading?.wordKey;
+  if (!Object.hasOwn(THREAT_WORDS, word ?? "")) return null;
+  return { severity: THREAT_WORDS[word], word, xp: 0, budget: 0 };
+}
+
+/**
  * The only reader of `ci.state`. Total: anything missing, malformed or not on
  * the allow-list comes back absent or at its default, never as whatever a
  * write happened to leave there.
@@ -136,6 +148,7 @@ export function normalizeState(raw) {
   if (!seqId || !PHASES.includes(raw.phase)) return null;
   const slots = (Array.isArray(raw.slots) ? raw.slots : []).map(normalizeSlot).filter(Boolean);
   const severity = SEVERITIES.includes(raw.intro?.threat?.severity) ? raw.intro.threat.severity : null;
+  const word = Object.hasOwn(THREAT_WORDS, raw.intro?.threat?.word ?? "") ? raw.intro.threat.word : null;
   return {
     v: 1,
     id: seqId,
@@ -145,7 +158,7 @@ export function normalizeState(raw) {
     skin: str(raw.skin, 20) || "etched",
     intro: {
       title: str(raw.intro?.title, 120),
-      threat: severity ? { severity, xp: num(raw.intro.threat.xp), budget: num(raw.intro.threat.budget) } : null,
+      threat: severity ? { severity, ...(word ? { word } : {}), xp: num(raw.intro.threat.xp), budget: num(raw.intro.threat.budget) } : null,
       party: (raw.intro?.party ?? []).slice(0, 12).map(rosterItem),
       hostiles: (raw.intro?.hostiles ?? []).slice(0, 12).map(rosterItem),
     },

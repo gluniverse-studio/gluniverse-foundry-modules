@@ -18,6 +18,7 @@ import {
   syncEncounter,
 } from "./initiative.mjs";
 import { resetState, syncPenalty } from "./downfall.mjs";
+import { stripChanged } from "../../level-ground/constants.mjs";
 
 /** Only the one acting GM writes; every client receives these hooks. */
 const acting = () => game.user?.isGM && game.users?.activeGM === game.user;
@@ -78,14 +79,15 @@ export function registerBoss() {
   });
 
   // A Boss DC is derived from the base creature's level and from the world's
-  // Proficiency-without-Level offset. Both can change under a boss that already
-  // has its abilities written out, and a description holding the old DC is a
-  // number the GM reads aloud without checking.
+  // Proficiency-without-Level offset, which is pf2e-flatten's custom modifier
+  // or Level Ground's Strip record. All three can change under a boss that
+  // already has its abilities written out, and a description holding the old DC
+  // is a number the GM reads aloud without checking.
   Hooks.on("updateActor", (actor, changed) => {
     if (!acting() || !bossProfile(actor)) return;
     const level = changed?.system?.details?.level?.value;
     const modifiers = changed?.system?.customModifiers;
-    if (level === undefined && modifiers === undefined) return;
+    if (level === undefined && modifiers === undefined && !stripChanged(changed)) return;
     refreshAbilityText(actor);
   });
 }

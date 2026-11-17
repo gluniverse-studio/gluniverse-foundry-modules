@@ -14,6 +14,7 @@
  * module script. Seek, don't wait (the Browser pane throttles frames):
  *   ?skin=etched|aegis &phase=intro|rolling|sorting|handoff &seek=<ms>
  *   &view=gm|player|spectator &render=webgl|css &late=1 &threat=<severity|none>
+ *   &word=<Level Ground Sizing Up word, e.g. coinToss> (the threat a Level Ground world draws)
  *   &dock=0
  * or window.__ciSeek(phase, ms) / window.__ciPlay(phase).
  */
@@ -71,14 +72,14 @@ const { Director } = await import("/scripts/features/combat-intro/director.mjs")
 const { Backdrop } = await import("/scripts/features/combat-intro/backdrop.mjs");
 const { default: overlay } = await import("/scripts/features/combat-intro/overlay.mjs");
 const { skinFor } = await import("/scripts/features/combat-intro/skins/index.mjs");
-const { normalizeState, publicSlot, sealResult } = await import("/scripts/features/combat-intro/state-model.mjs");
+const { normalizeState, publicSlot, sealResult, threatFromLevelGround } = await import("/scripts/features/combat-intro/state-model.mjs");
 const TL = await import("/scripts/features/combat-intro/timeline.mjs");
 const { PreviewDice } = await import("/tools/spotlight-roll/die.mjs");
 
 const P = new URLSearchParams(location.search);
 const opt = {
   skin: P.get("skin") || "etched", phase: P.get("phase") || "intro", seek: P.has("seek") ? Number(P.get("seek")) : null,
-  view: P.get("view") || "gm", render: P.get("render") || "webgl", late: P.get("late") === "1", threat: P.get("threat") || "severe",
+  view: P.get("view") || "gm", render: P.get("render") || "webgl", late: P.get("late") === "1", threat: P.get("threat") || "severe", word: P.get("word"),
 };
 if (P.get("dock") === "0") document.getElementById("dock").classList.add("hidden");
 
@@ -134,7 +135,7 @@ function buildState(phase) {
     id: "seq1", combatId: "c1", phase, at, skin: opt.skin, late,
     intro: late ? { title: "", party: [], hostiles: [] } : {
       title: "Ambush at the Gravel Ford",
-      threat: opt.threat === "none" ? null : { severity: opt.threat, xp: 120, budget: 120 },
+      threat: opt.word ? threatFromLevelGround({ wordKey: opt.word }) : opt.threat === "none" ? null : { severity: opt.threat, xp: 120, budget: 120 },
       party: PCS.map(([name, hue]) => ({ name, img: portrait(name.split(" ")[0], hue) })),
       hostiles: NPCS.map(([name, hue, count]) => ({ name, img: portrait(name.split(" ").at(-1), hue), count })),
     },

@@ -38,7 +38,7 @@ import {
 import { INTRO_MS, SORT_MS, HANDOFF_MS, phaseClock, phaseLength, sortReadyAt } from "./timeline.mjs";
 import {
   publicSlot, npcGroups, normalizeState, canAdvance, entitled, mayAct, sealResult, normalizeResult,
-  normalizeIntent, orderFrom, commitEntries,
+  normalizeIntent, orderFrom, commitEntries, threatFromLevelGround,
 } from "./state-model.mjs";
 import overlay from "./overlay.mjs";
 import {
@@ -922,6 +922,18 @@ async function buildIntro(combat, title, slots) {
       const { computeEncounter } = await import("../flatfinder/encounter.js");
       const enc = computeEncounter(combat);
       if (enc) threat = { severity: enc.severity, xp: enc.totalXp, budget: enc.budget?.[enc.severity] ?? 0 };
+    } catch (e) { warn("combat-intro: threat unavailable", e); }
+  } else if (Suite.enabled("level-ground")) {
+    // Level Ground's threat, read as its Sizing Up: what the party perceives
+    // (hidden combatants left out, as the roster leaves them out) and the word
+    // alone, since this plays on every player's screen.
+    try {
+      const [{ combatWorksheet }, { reading }] = await Promise.all([
+        import("../level-ground/world.mjs"),
+        import("../level-ground/logic.mjs"),
+      ]);
+      const { rows, party } = combatWorksheet(combat);
+      threat = threatFromLevelGround(reading(rows.filter((r) => !r.hidden), party));
     } catch (e) { warn("combat-intro: threat unavailable", e); }
   }
   // Friendly creatures stand with the party; neutral and hostile ones across from

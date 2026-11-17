@@ -618,6 +618,7 @@ for (const m of css.matchAll(/@keyframes\s+([A-Za-z0-9_-]+)/g)) {
 /* ── 9. Boss Creatures ───────────────────────────────────────────────────── */
 
 const BOSS = join(FEATURE, "boss");
+const bossIndexSource0 = read("scripts/features/pf2e-variant-rules/boss/index.mjs");
 const bossRules = await import(url(BOSS, "rules.mjs"));
 const bossData = await import(url(BOSS, "data.mjs"));
 const bossPlacement = await import(url(BOSS, "initiative.mjs"));
@@ -741,6 +742,33 @@ if (bossDc(8, { flatten: 4 }) !== bossDc(8)) {
   fail("boss: a positive 'flatten' must be ignored — flattening only ever lowers a number");
 }
 if (bossDc(-1, { flatten: -100 }) < 1) fail("boss: a flattened Boss DC must never fall below 1");
+
+/*
+ * Level Ground takes level off a different way: Strip rewrites the stored
+ * numbers and adds no modifier, keeping the level it took off in its
+ * `lvg.strip` record. A Boss DC that read only pf2e-flatten's modifier stayed
+ * a full level above every other DC on a Stripped boss, while the PCs rolled
+ * under PF2e's Proficiency without Level.
+ */
+{
+  const { strippedOffset } = bossRules;
+  if (strippedOffset({ level: 8 }) !== -8) fail("boss: a Strip record at level 8 is a −8 offset");
+  if (strippedOffset({ level: -1 }) !== 0 || strippedOffset({ level: 0 }) !== 0) fail("boss: Strip takes nothing off below level 1, so neither may the Boss DC");
+  if (strippedOffset(null) !== 0 || strippedOffset(undefined) !== 0 || strippedOffset({}) !== 0) fail("boss: no Strip record is no offset");
+  const { flattenOffset } = await import(url(BOSS, "apply.mjs"));
+  const S = "gluniverse-foundry-modules";
+  const actor = (flags, mods = []) => ({ flags, system: { customModifiers: { all: mods } } });
+  const nested = flattenOffset(actor({ [S]: { lvg: { strip: { level: 8 } } } }));
+  const dotted = flattenOffset(actor({ [S]: { "lvg.strip": { level: 8 } } }));
+  if (nested !== -8 || dotted !== -8) fail(`boss: flattenOffset must read Level Ground's Strip record (got ${nested}, ${dotted})`);
+  if (bossDc(8, { flatten: nested }) !== 21) fail("boss: a Stripped level 8 boss's DC must be 21, like a flattened one");
+  if (flattenOffset(actor({}, [{ slug: "flattened-level-proficiency", modifier: -6 }])) !== -6) fail("boss: flattenOffset stopped reading pf2e-flatten's modifier");
+  if (flattenOffset(actor({})) !== 0) fail("boss: an actor nothing flattened has no offset");
+  const hook = bossIndexSource0.slice(bossIndexSource0.indexOf("Hooks.on(\"updateActor\""));
+  if (!/stripChanged\(changed\)/.test(hook.slice(0, hook.indexOf("refreshAbilityText")))) {
+    fail("boss: the ability text is not refreshed when Level Ground Strips or Unstrips the boss, so its DCs keep the old offset");
+  }
+}
 
 /* 9c. Downfalls. */
 

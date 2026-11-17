@@ -164,7 +164,7 @@ function introMarkup(state, ctx) {
       </div>
       <div class="glci-threat" data-severity="${esc(sev ?? "none")}">${sev ? `
         <span class="glci-threat-k">${esc(t(k("threat")))}</span>
-        <b class="glci-threat-v">${esc(t(`GLCI.threat.${sev}`))}</b>
+        <b class="glci-threat-v">${esc(t(intro.threat.word ? `GLCI.threat.word.${intro.threat.word}` : `GLCI.threat.${sev}`))}</b>
         ${intro.threat.budget ? `<span class="glci-threat-xp">${esc(f("GLCI.threat.xp", { xp: intro.threat.xp, budget: intro.threat.budget }))}</span>` : ""}` : ""}
       </div>
     </div>`;

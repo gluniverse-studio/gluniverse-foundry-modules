@@ -27,6 +27,8 @@ import {
   stripActor,
   taskRank,
 } from "./rules.mjs";
+import { BOSS_FLAGS } from "../pf2e-variant-rules/boss/constants.mjs";
+import { readFlag } from "./constants.mjs";
 
 /* ── Ranks ────────────────────────────────────────────────────────────── */
 
@@ -642,6 +644,11 @@ export const printedLevelOf = (actorData) => {
  */
 export function stripPlan(actorData, level) {
   const L = level ?? printedLevelOf(actorData);
+  // Boss Creatures owns the text of the items it grants and writes it from a
+  // Boss DC that already follows this record (its flattenOffset), so Strip
+  // leaves them as they are: stripping them too takes the level off twice.
+  const ownedByBoss = (item) => readFlag(item?.flags, BOSS_FLAGS.item) != null;
+  actorData = { ...actorData, items: (actorData.items ?? []).filter((item) => !ownedByBoss(item)) };
   const stripped = stripActor(actorData, L);
   const actorDiff = diffPaths(actorData.system, stripped.system, "system");
   const items = [];

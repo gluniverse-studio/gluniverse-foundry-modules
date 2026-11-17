@@ -70,6 +70,23 @@ export const INTRO_LINES = Object.freeze({
 /** Threat severities Flatfinder reports; keys GLCI.threat.<severity> (dynamic family). */
 export const SEVERITIES = Object.freeze(["trivial", "low", "moderate", "severe", "extreme"]);
 
+/**
+ * Level Ground's Sizing Up words (its `WORD_KEYS`), and the severity each one
+ * is drawn at. The intro plays on every player's screen, and Level Ground tells
+ * the party only the word, so a Level Ground threat carries the word and a
+ * severity read from the word, never from the band: Trivial and Low are both
+ * "weaker", and a look that told them apart would give the band away.
+ * Keys GLCI.threat.word.<word> (dynamic family).
+ */
+export const THREAT_WORDS = Object.freeze({
+  noThreat: "trivial",
+  weaker: "low",
+  realFight: "moderate",
+  dangerous: "severe",
+  coinToss: "extreme",
+  overwhelming: "extreme",
+});
+
 /** Server-time lead for a throw cue, so every client starts the same frame. */
 export const CUE_LEAD_MS = 320;
 

@@ -62,6 +62,14 @@ export const BOSS_FLAGS = Object.freeze({
   state: "vr.bossState",
   /** Marks an extra initiative entry as a boss's Nth turn: { of, index }. */
   turn: "vr.bossTurn",
+  /**
+   * Marks an item this feature created (a Boss Ability, a core action or a
+   * Downfall): { id, core?, downfall? }. Its description is this feature's, rewritten
+   * from the boss's numbers whenever they move, so Level Ground's Strip leaves it
+   * alone (an item Strip rewrote here would lose its level twice once the
+   * text is refreshed from an already-flattened Boss DC).
+   */
+  item: "vr.bossItem",
 });
 
 /**

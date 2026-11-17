@@ -179,6 +179,14 @@ would not be, leaving every save against the boss about a level too hard. The
 actor's own flattening value is folded in when the DC is computed, and the panel
 says so under the figure.
 
+That value comes from either road that takes a level off (`flattenOffset`):
+pf2e-flatten's custom modifier, or Level Ground's Strip, which rewrites the stored
+numbers, adds no modifier and keeps the level it took off in its `lvg.strip`
+record (`strippedOffset`). The ability text is rewritten when that record is set
+or removed, and Strip leaves the items this feature grants (`vr.bossItem`) alone:
+their text is this feature's, already written from the flattened DC, and
+stripping it as well would take the level off twice.
+
 **The level bump and the XP factor reach Flatfinder by different routes.** The
 encounter-budget badge already derives XP from the level difference, so feeding it
 the boss level *and* multiplying by the tier would count the boss twice. The bump

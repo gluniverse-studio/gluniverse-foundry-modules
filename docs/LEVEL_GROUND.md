@@ -220,6 +220,13 @@ second pass), `lvg.tempo` (combatant), `lvg.unbowed` (actor), `lvg.card`
 - **Boss extra turns** (`pf2e-variant-rules`) are real combatants with the boss's
   own actor; the worksheet refuses them (`isExtraTurn`) and counts each
   creature once.
+- **A Stripped boss.** Boss Creatures reads the `lvg.strip` record to take the
+  level off its Boss DC, as it does pf2e-flatten's modifier, and rewrites its
+  ability text when the record is set or removed. Strip therefore skips the items
+  that feature grants (`vr.bossItem`); stripping them too would take the level
+  off twice.
+- **Combat Intro** draws Level Ground's threat as Sizing Up (the word, from the
+  creatures the party can see) when Flatfinder is off.
 
 ## What stays manual
 

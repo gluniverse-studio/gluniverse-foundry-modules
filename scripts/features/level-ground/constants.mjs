@@ -55,6 +55,23 @@ export function readFlag(flags, key) {
   return key.split(".").reduce((o, k) => (o && typeof o === "object" ? o[k] : undefined), scope);
 }
 
+/**
+ * Whether an actor update's `changed` set or removed the `lvg.strip` record.
+ * A flag arrives in more than one shape: nested (`lvg: { strip }`), as the
+ * literal dotted key `setFlag` sends, or as a deletion (`-=strip`,
+ * `-=lvg.strip`, `-=lvg`). Boss Creatures rewrites a boss's ability text on it.
+ */
+export function stripChanged(changed) {
+  const scope = changed?.flags?.[SUITE_ID];
+  if (!scope || typeof scope !== "object") return false;
+  return Object.keys(scope).some((k) => {
+    if (k === "-=lvg" || k === "-=lvg.strip" || k === "lvg.strip") return true;
+    if (k !== "lvg") return false;
+    const lvg = scope.lvg;
+    return !!lvg && typeof lvg === "object" && Object.keys(lvg).some((j) => j === "strip" || j === "-=strip");
+  });
+}
+
 /** The full dotted path an update writes a flag under. */
 export const flagPath = (key) => `flags.${SUITE_ID}.${key}`;
 
