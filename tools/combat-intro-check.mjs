@@ -105,7 +105,7 @@ if (dirty.slots[0].mods.length) fail("secrecy: normalizeState keeps an NPC's mod
   const build = mainSrc.slice(mainSrc.indexOf("async function buildIntro"), mainSrc.indexOf("// Friendly creatures stand"));
   if (!/Suite\.enabled\("level-ground"\)/.test(build)) fail("threat: the intro has no threat in a Level Ground world without Flatfinder");
   if (!/threatFromLevelGround\(/.test(build)) fail("threat: the intro must store Level Ground's threat through threatFromLevelGround, or the band reaches every player");
-  if (!/rows\.filter\(\(r\) => !r\.hidden\)/.test(build)) fail("threat: the intro rates hidden combatants, which the party cannot see");
+  if (!/!r\.hidden && !\(c && visibilityOf\(c\)\.hidden\)/.test(build) || !/rows\.filter\(seen\)/.test(build)) fail("threat: the intro rates combatants the roster hides (Foundry's hidden or the rail's), which the party cannot see");
   const kept = SM.normalizeState({ id: "s", combatId: "c", phase: "intro", intro: { threat: { severity: "low", word: "weaker", pct: 55, band: "low" } } });
   if (kept.intro.threat.word !== "weaker") fail("threat: normalizeState drops the Sizing Up word");
   if ("pct" in kept.intro.threat || "band" in kept.intro.threat) fail("threat: normalizeState keeps a field off the allow-list");

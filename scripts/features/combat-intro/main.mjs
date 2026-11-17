@@ -925,15 +925,17 @@ async function buildIntro(combat, title, slots) {
     } catch (e) { warn("combat-intro: threat unavailable", e); }
   } else if (Suite.enabled("level-ground")) {
     // Level Ground's threat, read as its Sizing Up: what the party perceives
-    // (hidden combatants left out, as the roster leaves them out) and the word
-    // alone, since this plays on every player's screen.
+    // (every combatant the roster leaves out is left out here too, the rail's
+    // own hidden mark included) and the word alone, since this plays on every
+    // player's screen.
     try {
       const [{ combatWorksheet }, { reading }] = await Promise.all([
         import("../level-ground/world.mjs"),
         import("../level-ground/logic.mjs"),
       ]);
       const { rows, party } = combatWorksheet(combat);
-      threat = threatFromLevelGround(reading(rows.filter((r) => !r.hidden), party));
+      const seen = (r) => { const c = combat.combatants.get(r.id); return !r.hidden && !(c && visibilityOf(c).hidden); };
+      threat = threatFromLevelGround(reading(rows.filter(seen), party));
     } catch (e) { warn("combat-intro: threat unavailable", e); }
   }
   // Friendly creatures stand with the party; neutral and hostile ones across from
