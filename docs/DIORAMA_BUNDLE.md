@@ -1,7 +1,7 @@
 # Diorama Bundles
 
 A Diorama Bundle is a version of a map made for the 3D view, exported by Map
-Maker (contract: patcharapon-j/gluniverse-map-maker#111). Map Maker paints
+Maker (contract: gluniverse-studio/gluniverse-map-maker#111). Map Maker paints
 standing props in 3/4 view, so in 3D that paint would lie flat on the floor
 beside the real prop. A bundle brings the map with those props painted out,
 and each prop as a textured model that stands where the 2D art drew it.
