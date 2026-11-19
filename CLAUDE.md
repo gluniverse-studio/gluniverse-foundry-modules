@@ -2112,7 +2112,7 @@ grep -rhoE '@keyframes\s+gl-[A-Za-z0-9_-]+' styles/ | sort | uniq -d
 
 ### Issue tracker
 
-Issues live as GitHub issues on `patcharapon-j/gluniverse-foundry-modules`, via the
+Issues live as GitHub issues on `gluniverse-studio/gluniverse-foundry-modules`, via the
 `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels

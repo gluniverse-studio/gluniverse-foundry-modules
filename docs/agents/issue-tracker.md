@@ -1,7 +1,7 @@
 # Issue tracker: GitHub
 
 Issues and specs for this repo live as GitHub issues on
-[`patcharapon-j/gluniverse-foundry-modules`](https://github.com/patcharapon-j/gluniverse-foundry-modules).
+[`gluniverse-studio/gluniverse-foundry-modules`](https://github.com/gluniverse-studio/gluniverse-foundry-modules).
 Use the `gh` CLI for all operations.
 
 Note: this repo is often worked in from a git worktree under `.claude/worktrees/`.
