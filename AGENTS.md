@@ -2,6 +2,10 @@
 
 Guidance for Codex (and humans) working in this repository.
 
+Shared agent skills (the mattpocock set, impeccable and its agents, animation, three.js) come from the
+studio home repo `~/gluniverse-home` (gluniverse-studio/gluniverse-home), linked user-wide by its
+`scripts/link-skills.sh`. Skills about this repo (`diorama-*`, `spellsprite-craft`) stay in `.claude/skills`.
+
 ## What this is
 
 **GLUniverse Suite** (`gluniverse-foundry-modules`) is a single Foundry VTT package
