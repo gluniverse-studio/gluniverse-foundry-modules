@@ -2110,6 +2110,10 @@ grep -rhoE '@keyframes\s+gl-[A-Za-z0-9_-]+' styles/ | sort | uniq -d
 
 ## Agent skills
 
+Shared agent skills (the mattpocock set, impeccable and its agents, animation, three.js) come from the
+studio home repo `~/gluniverse-home` (gluniverse-studio/gluniverse-home), linked user-wide by its
+`scripts/link-skills.sh`. Skills about this repo (`diorama-*`, `spellsprite-craft`) stay in `.claude/skills`.
+
 ### Issue tracker
 
 Issues live as GitHub issues on `gluniverse-studio/gluniverse-foundry-modules`, via the
@@ -2123,5 +2127,5 @@ The five canonical roles, each label string equal to its name (`needs-triage`,
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root, read alongside
+Single-context: one `GLOSSARY.md` plus `docs/adr/` at the repo root, read alongside
 this file and the per-feature `docs/*.md`. See `docs/agents/domain.md`.
