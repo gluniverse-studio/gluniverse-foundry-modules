@@ -3,8 +3,8 @@
 How the engineering skills should consume this repo's domain documentation when
 exploring the codebase.
 
-**Layout: single-context.** One `CONTEXT.md` at the repo root, one `docs/adr/`
-directory for decisions. There is no `CONTEXT-MAP.md` and no per-context split —
+**Layout: single-context.** One `GLOSSARY.md` at the repo root, one `docs/adr/`
+directory for decisions. There is no `GLOSSARY-MAP.md` and no per-context split —
 this is one Foundry package, not a monorepo.
 
 ## Before exploring, read these
@@ -16,16 +16,16 @@ this is one Foundry package, not a monorepo.
   `FEATURE_CONTRACT.md`, `RESOURCE_BARS.md`, `STAGE.md`, and so on).
   `CLAUDE.md` names the relevant one for each area you might touch. Read the ones
   that cover your area before changing it.
-- **`CONTEXT.md`** at the repo root: the domain glossary, when it exists.
+- **`GLOSSARY.md`** at the repo root: the domain glossary, when it exists.
 - **`docs/adr/`**: read ADRs that touch the area you're about to work in.
 
-If `CONTEXT.md` or `docs/adr/` don't exist, **proceed silently**. Don't flag their
+If `GLOSSARY.md` or `docs/adr/` don't exist, **proceed silently**. Don't flag their
 absence; don't suggest creating them upfront. The `/domain-modeling` skill
 (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them
 lazily when terms or decisions actually get resolved.
 
 `CLAUDE.md` and `docs/*.md` are different: those already exist and are the
-authority. Nothing in a `CONTEXT.md` or an ADR overrides `CLAUDE.md`; where they
+authority. Nothing in a `GLOSSARY.md` or an ADR overrides `CLAUDE.md`; where they
 disagree, `CLAUDE.md` wins and the conflict is worth raising.
 
 ## File structure
@@ -34,7 +34,7 @@ disagree, `CLAUDE.md` wins and the conflict is worth raising.
 /
 ├── CLAUDE.md                 ← binding repo guidance (authoritative)
 ├── AGENTS.md                 ← the Codex-facing mirror of it; do not edit from Claude
-├── CONTEXT.md                ← domain glossary (created lazily)
+├── GLOSSARY.md                ← domain glossary (created lazily)
 ├── docs/
 │   ├── DESIGN_SYSTEM.md      ← and the other per-feature design docs
 │   ├── adr/                  ← decisions (created lazily)
@@ -50,7 +50,7 @@ disagree, `CLAUDE.md` wins and the conflict is worth raising.
 ## Use the glossary's vocabulary
 
 When your output names a domain concept (in an issue title, a refactor proposal, a
-hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to
+hypothesis, a test name), use the term as defined in `GLOSSARY.md`. Don't drift to
 synonyms the glossary explicitly avoids.
 
 This repo already has a strong, load-bearing vocabulary in `CLAUDE.md` —

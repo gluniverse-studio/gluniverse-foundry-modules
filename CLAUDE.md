@@ -2127,5 +2127,5 @@ The five canonical roles, each label string equal to its name (`needs-triage`,
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root, read alongside
+Single-context: one `GLOSSARY.md` plus `docs/adr/` at the repo root, read alongside
 this file and the per-feature `docs/*.md`. See `docs/agents/domain.md`.
